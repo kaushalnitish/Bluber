@@ -1,0 +1,6 @@
+{
+  "name": "BLUBER",
+  "description": "Chamba's Hyperlocal Super App offering Rides, Food, Grocery, Medicine, Courier and local services.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
