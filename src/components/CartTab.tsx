@@ -16,6 +16,7 @@ import {
   Coins
 } from "lucide-react";
 import { CartItem } from "../types";
+import { ImageComponent } from "./ImageComponent";
 
 interface CartTabProps {
   cart: CartItem[];
@@ -196,14 +197,13 @@ export const CartTab: React.FC<CartTabProps> = ({
                   <div key={item.id} className={`flex items-center justify-between pt-3 ${idx === 0 ? "pt-0 border-none px-0" : ""}`}>
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-border-custom/30 flex items-center justify-center bg-canvas">
-                        <img 
-                          src={item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop"} 
+                        <ImageComponent 
+                          src={item.image} 
                           alt={item.name} 
+                          fallbackName={item.name}
+                          fallbackType="product"
                           className="w-full h-full object-cover" 
                           referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            e.currentTarget.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop";
-                          }}
                         />
                       </div>
                       <div className="text-left">

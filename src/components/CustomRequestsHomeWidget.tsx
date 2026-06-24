@@ -67,8 +67,39 @@ export const CustomRequestsHomeWidget: React.FC<CustomRequestsHomeWidgetProps> =
         </div>
         
         {/* Delivery + Search illustration */}
-        <div className="relative w-14 h-14 bg-[#EDF7EF] rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-emerald-100 shrink-0 select-none">
-          <span>🛵</span>
+        <div className="relative w-14 h-14 bg-gradient-to-br from-[#E8F5EC] to-[#EDF7EF] rounded-2xl flex items-center justify-center shadow-sm border border-emerald-100 shrink-0 select-none overflow-hidden">
+          <svg 
+            width="22" 
+            height="22" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="text-emerald-700 drop-shadow-sm"
+          >
+            {/* Rear Wheel */}
+            <circle cx="6" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="6" cy="17" r="0.75" fill="currentColor" />
+            
+            {/* Front Wheel */}
+            <circle cx="18" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="18" cy="17" r="0.75" fill="currentColor" />
+            
+            {/* Floorboard / Deck */}
+            <path d="M8.5 17h6.5c0.8 0 1.2-0.4 1.2-1.2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            
+            {/* Chassis / Body */}
+            <path d="M6 14.5c0-2.5 1.5-3.5 3.5-3.5h3c1 0 1.5 0.5 1.5 1.5v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            
+            {/* Premium Seat */}
+            <path d="M7.5 11h4.5c0.8 0 1.2-0.4 1.2-1v-0.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            
+            {/* Steering Fork & Front Fender */}
+            <path d="M18 14.5l-2.5-7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            
+            {/* Front Cowl & Handlebar */}
+            <path d="M15.5 7h-2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12.5 6h4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           <div className="absolute -top-1.5 -right-1.5 bg-[#1E6B3D] text-white p-1 rounded-md text-[9px]">
             ✨
           </div>

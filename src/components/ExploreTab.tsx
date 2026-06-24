@@ -14,11 +14,19 @@ import {
   ThumbsDown,
   Clock,
   Sparkles,
-  Check
+  Check,
+  Pizza,
+  IceCream,
+  Coffee,
+  ShoppingBasket,
+  Cookie,
+  Utensils,
+  Apple
 } from "lucide-react";
 import { CartItem } from "../types";
 import { DIRECT_GROCERY_PRODUCTS } from "../data";
 import { safeStorage } from "../utils/safeStorage";
+import { ImageComponent } from "./ImageComponent";
 
 interface ExploreTabProps {
   cart: CartItem[];
@@ -86,19 +94,17 @@ export const ExploreTab: React.FC<ExploreTabProps> = ({
     "Ride to Chowgan"
   ];
 
-  // Popular Categories list - sleek premium text-only definitions
+  // Popular Categories list - with premium outline icons and style
   const popularCategories = [
-    { name: "Fresh Fruits", action: "grocery", categoryKey: "fruits" },
-    { name: "Dairy Store", action: "grocery", categoryKey: "dairy" },
-    { name: "Fresh Bakery", action: "grocery", categoryKey: "bakery" },
-    { name: "Ice Cream Hub", action: "grocery", categoryKey: "icecream" },
-    { name: "Beverages", action: "grocery", categoryKey: "beverages" },
-    { name: "Snacks", action: "grocery", categoryKey: "snacks" },
-    { name: "Beauty & Care", action: "grocery", categoryKey: "beauty" },
-    { name: "Household", action: "grocery", categoryKey: "household" },
-    { name: "Food Delivery", action: "food" },
-    { name: "Custom Orders", action: "custom" },
-    { name: "Ride Services", action: "rides" }
+    { name: "Fast Food", action: "food", icon: <Utensils size={18} className="text-[#E11D48]" /> },
+    { name: "Pizza", action: "food", icon: <Pizza size={18} className="text-amber-600" /> },
+    { name: "Beverages", action: "grocery", categoryKey: "beverages", icon: <Coffee size={18} className="text-blue-600" /> },
+    { name: "Ice Cream", action: "grocery", categoryKey: "icecream", icon: <IceCream size={18} className="text-pink-600" /> },
+    { name: "Snacks", action: "grocery", categoryKey: "snacks", icon: <Cookie size={18} className="text-yellow-600" /> },
+    { name: "Essentials", action: "grocery", categoryKey: "household", icon: <ShoppingBasket size={18} className="text-[#1E6B3D]" /> },
+    { name: "Fruits", action: "grocery", categoryKey: "fruits", icon: <Apple size={18} className="text-emerald-600" /> },
+    { name: "Custom Orders", action: "custom", icon: <Sparkles size={18} className="text-[#9333EA]" /> },
+    { name: "Ride Services", action: "rides", icon: <Car size={18} className="text-[#0284C7]" /> }
   ];
 
   // Recently Ordered list (persisted in local storage or seeded defaults)
@@ -213,9 +219,12 @@ export const ExploreTab: React.FC<ExploreTabProps> = ({
             <button
               key={cat.name}
               onClick={() => handleCategoryClick(cat.action, cat.categoryKey)}
-              className="py-3.5 px-2 rounded-2xl flex items-center justify-center text-center cursor-pointer transition-all active:scale-[0.96] hover:scale-[1.02] border border-border-custom/50 shadow-xs bg-white hover:border-primary hover:bg-canvas"
+              className="py-3.5 px-2 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all active:scale-[0.96] hover:scale-[1.02] border border-border-custom/50 shadow-xs bg-white hover:border-primary hover:bg-canvas"
             >
-              <span className="text-[10px] font-black text-text-primary uppercase tracking-tight">
+              <div className="p-1 rounded-full bg-neutral-50 border border-neutral-100/30 flex items-center justify-center shadow-2xs">
+                {cat.icon}
+              </div>
+              <span className="text-[9px] font-black text-text-primary uppercase tracking-tight">
                 {cat.name}
               </span>
             </button>
@@ -240,14 +249,14 @@ export const ExploreTab: React.FC<ExploreTabProps> = ({
               >
                 {/* Image & badge */}
                 <div className="bg-canvas/40 w-full h-28 rounded-2xl overflow-hidden flex items-center justify-center mb-3 relative">
-                  <img 
+                  <ImageComponent 
                     src={prod.image} 
                     alt={prod.name} 
+                    fallbackName={prod.name}
+                    fallbackType="product"
+                    categoryText={prod.category}
                     loading="lazy"
-                    className="w-full h-full object-cover select-none"
-                    onError={(e) => {
-                      e.currentTarget.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop";
-                    }}
+                    className="w-full h-full object-cover select-none animate-[fadeIn_0.3s_ease-out]"
                   />
                   <span className="absolute top-2 left-2 bg-white/90 backdrop-blur-xs text-[8px] font-black text-text-primary px-2 py-0.5 rounded-full uppercase border border-border-custom/30">
                     {prod.category}
@@ -380,14 +389,13 @@ export const ExploreTab: React.FC<ExploreTabProps> = ({
                 className="bg-white p-3 rounded-2xl border border-border-custom/30 flex justify-between items-center text-left"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-gray-100 flex items-center justify-center">
-                    <img 
+                  <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-gray-100 flex items-center justify-center bg-neutral-50">
+                    <ImageComponent 
                       src={item.image} 
                       alt={item.name} 
+                      fallbackName={item.name}
+                      fallbackType="product"
                       className="w-full h-full object-cover select-none"
-                      onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop";
-                      }}
                     />
                   </div>
                   <div>

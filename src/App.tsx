@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion } from "motion/react";
 import { 
   Bell, 
   MapPin, 
@@ -27,7 +28,8 @@ import {
   Apple,
   IceCream,
   FileText,
-  X
+  X,
+  CheckCircle
 } from "lucide-react";
 
 import { 
@@ -50,10 +52,13 @@ import { GroceryPanel } from "./components/GroceryPanel";
 import { safeStorage } from "./utils/safeStorage";
 import { CustomOrderApplet } from "./components/CustomOrderApplet";
 import { CustomRequestsHomeWidget } from "./components/CustomRequestsHomeWidget";
+import { EliteWaitlistModal } from "./components/EliteWaitlistModal";
+import { StoreCard } from "./components/StoreCard";
 import { CartTab } from "./components/CartTab";
 import { AdminPanel } from "./components/AdminPanel";
 import { ExploreTab } from "./components/ExploreTab";
 import { ProfileTab } from "./components/ProfileTab";
+import { ImageComponent } from "./components/ImageComponent";
 import { OrdersTab } from "./components/OrdersTab";
 import { getPricingTier, PRICING_TIERS } from "./utils/pricing";
 import {
@@ -102,6 +107,65 @@ export default function App() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [rideFeedback, setRideFeedback] = useState<"YES" | "NO" | null>(null);
+  
+  // V-Mart Coming Soon notify state
+  const [isNotifiedVMart, setIsNotifiedVMart] = useState<boolean>(() => {
+    return safeStorage.getItem("bluber_v_mart_notified") === "true";
+  });
+
+  const handleToggleVMartNotification = () => {
+    const newVal = !isNotifiedVMart;
+    setIsNotifiedVMart(newVal);
+    safeStorage.setItem("bluber_v_mart_notified", String(newVal));
+  };
+
+  // BLUBER Elite Experiences waitlist states
+  const [isNotifiedEliteBuddy, setIsNotifiedEliteBuddy] = useState<boolean>(() => {
+    return safeStorage.getItem("bluber_elite_buddy_notified") === "true";
+  });
+  
+  const [eliteBuddyData, setEliteBuddyData] = useState<{
+    email: string;
+    phone: string;
+    interests: string[];
+  } | null>(() => {
+    const saved = safeStorage.getItem("bluber_elite_buddy_data");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [isEliteWaitlistOpen, setIsEliteWaitlistOpen] = useState(false);
+
+  const handleJoinEliteWaitlist = (data: { email: string; phone: string; interests: string[] }) => {
+    setIsNotifiedEliteBuddy(true);
+    setEliteBuddyData(data);
+    safeStorage.setItem("bluber_elite_buddy_notified", "true");
+    safeStorage.setItem("bluber_elite_buddy_data", JSON.stringify(data));
+  };
+
+  // URL routing sync for /ride-booking
+  useEffect(() => {
+    if (isRiding) {
+      if (window.location.pathname !== "/ride-booking") {
+        window.history.pushState({ page: "ride-booking" }, "", "/ride-booking");
+      }
+    } else {
+      if (window.location.pathname === "/ride-booking") {
+        window.history.pushState({ page: "home" }, "", "/");
+      }
+    }
+  }, [isRiding]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (window.location.pathname === "/ride-booking") {
+        setIsRiding(true);
+      } else {
+        setIsRiding(false);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   
   // Global Success Toast State
   const [successToast, setSuccessToast] = useState<{
@@ -321,6 +385,113 @@ export default function App() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "Cancelled" as const } : o));
   };
 
+  const handleReorderOrder = (order: Order) => {
+    if (!order.itemsSummary) return;
+    
+    const segments = order.itemsSummary.split(", ");
+    const newCartItems: CartItem[] = [];
+    
+    segments.forEach((segment, idx) => {
+      // Parse something like "Steamed Organic Vegetable Momos × 1" or "Momo x 2" or "Momo 2"
+      const match = segment.match(/(.+?)\s*[×x]\s*(\d+)/i) || segment.match(/(\d+)\s*[×x]\s*(.+)/i);
+      let name = segment;
+      let quantity = 1;
+      
+      if (match) {
+        if (isNaN(Number(match[1]))) {
+          name = match[1].trim();
+          quantity = parseInt(match[2], 10);
+        } else {
+          quantity = parseInt(match[1], 10);
+          name = match[2].trim();
+        }
+      }
+      
+      // Search inside RESTAURANTS, STORES, and DIRECT_GROCERY_PRODUCTS for a matching item by name
+      let price = 100; // default price fallback
+      let image = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop"; // fallback image
+      let itemType: "food" | "grocery" | "medicine" = "grocery";
+      let storeOrRestaurantId = "reorder-merchant";
+      let storeOrRestaurantName = order.merchantName || "Bluber Merchant";
+      
+      if (order.type.toLowerCase() === "food") {
+        itemType = "food";
+      } else if (order.type.toLowerCase() === "medicine") {
+        itemType = "medicine";
+      }
+      
+      let found = false;
+      // Try to find in restaurants
+      for (const r of restaurants) {
+        const item = r.items.find(i => 
+          i.name.toLowerCase() === name.toLowerCase() || 
+          name.toLowerCase().includes(i.name.toLowerCase()) || 
+          i.name.toLowerCase().includes(name.toLowerCase())
+        );
+        if (item) {
+          price = item.price;
+          image = item.image;
+          storeOrRestaurantId = r.id;
+          storeOrRestaurantName = r.name;
+          found = true;
+          break;
+        }
+      }
+      
+      // Try to find in stores
+      if (!found) {
+        for (const s of stores) {
+          const prod = s.products.find(p => 
+            p.name.toLowerCase() === name.toLowerCase() || 
+            name.toLowerCase().includes(p.name.toLowerCase()) || 
+            p.name.toLowerCase().includes(name.toLowerCase())
+          );
+          if (prod) {
+            price = prod.price;
+            image = prod.image;
+            storeOrRestaurantId = s.id;
+            storeOrRestaurantName = s.name;
+            found = true;
+            break;
+          }
+        }
+      }
+      
+      // Try to find in DIRECT_GROCERY_PRODUCTS
+      if (!found) {
+        const prod = DIRECT_GROCERY_PRODUCTS.find(p => 
+          p.name.toLowerCase() === name.toLowerCase() || 
+          name.toLowerCase().includes(p.name.toLowerCase()) || 
+          p.name.toLowerCase().includes(name.toLowerCase())
+        );
+        if (prod) {
+          price = prod.price;
+          image = prod.image;
+          storeOrRestaurantId = "direct_grocery";
+          storeOrRestaurantName = "Bluber Direct Sourcing";
+          found = true;
+        }
+      }
+      
+      newCartItems.push({
+        id: `ci-${Date.now()}-${idx}-${Math.floor(Math.random() * 1000)}`,
+        name,
+        price,
+        quantity,
+        image,
+        storeOrRestaurantId,
+        storeOrRestaurantName,
+        type: itemType
+      });
+    });
+    
+    if (newCartItems.length > 0) {
+      setCart(newCartItems);
+      setActiveTab("cart");
+      triggerGlobalToast(`Reordered ${newCartItems.length} items`, newCartItems[0].image);
+    }
+  };
+
   const handleAddCustomOrder = (desc: string, customerName = "Nitish Kaushal", phoneNumber = "+91-98782-99015") => {
     try {
       const saved = safeStorage.getItem("bluber_custom_orders");
@@ -418,13 +589,12 @@ export default function App() {
           <div className="absolute top-4 inset-x-4 bg-white/95 backdrop-blur-md border border-emerald-500/20 shadow-xl rounded-2xl p-3 flex items-center justify-between z-[9999] animate-slide-down pointer-events-auto">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100 flex items-center justify-center bg-[#EDF7EF]">
-                <img 
+                <ImageComponent 
                   src={successToast.itemImage} 
                   alt={successToast.itemName} 
+                  fallbackName={successToast.itemName}
+                  fallbackType="product"
                   className="w-full h-full object-cover" 
-                  onError={(e) => {
-                    e.currentTarget.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=200&auto=format&fit=crop";
-                  }}
                 />
               </div>
               <div className="text-left">
@@ -585,6 +755,7 @@ export default function App() {
                   orders={orders} 
                   onAdvanceOrderStatus={handleAdvanceOrderStatus}
                   onCancelOrder={handleCancelOrder}
+                  onReorder={handleReorderOrder}
                 />
               )}
               
@@ -608,6 +779,8 @@ export default function App() {
                   onEnterAdmin={() => setIsAdminOpen(true)}
                   orders={orders}
                   onViewAllOrders={() => setActiveTab("orders")}
+                  isNotifiedVMart={isNotifiedVMart}
+                  onToggleVMartNotification={handleToggleVMartNotification}
                 />
               )}
 
@@ -647,11 +820,13 @@ export default function App() {
                       {/* Profile Avatar */}
                       <button 
                         onClick={() => setActiveTab("profile")}
-                        className="w-10 h-10 bg-[#EDF7EF] rounded-full text-white flex items-center justify-center font-bold text-xs shadow-md border-2 border-white cursor-pointer overflow-hidden"
+                        className="w-10 h-10 bg-[#EDF7EF] rounded-full text-white flex items-center justify-center font-bold text-xs shadow-md border-2 border-white cursor-pointer overflow-hidden shrink-0"
                       >
-                        <img 
+                        <ImageComponent 
                           src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop" 
                           alt="Profile Avatar"
+                          fallbackName="Chamba User"
+                          fallbackType="avatar"
                           className="w-full h-full object-cover"
                         />
                       </button>
@@ -718,37 +893,58 @@ export default function App() {
                   )}
 
                   {/* 1. Hero Banner (Top Priority) */}
-                  <div id="hero-banner" className="pt-2 text-left">
-                    <div className="w-full bg-[#FEF9C3] rounded-[32px] p-5 shadow-sm border border-yellow-200 relative overflow-hidden flex justify-between items-center h-44">
+                  <div id="hero-banner" className="pt-2 text-left relative group">
+                    <div className="w-full bg-gradient-to-r from-[#FFD84D] via-[#FFC72C] to-[#FFB800] rounded-[32px] p-5 shadow-[0_20px_45px_rgba(255,199,44,0.22)] border border-[#FFC72C]/45 relative overflow-hidden flex justify-between items-center h-44 transition-all duration-300 hover:shadow-[0_24px_50px_rgba(255,199,44,0.3)]">
                       
+                      {/* Subtle elegant background texture / noise pattern */}
+                      <div className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:10px_10px]"></div>
+
+                      {/* Premium light streak / glass reflection curve */}
+                      <div className="absolute -inset-x-20 top-0 h-[150%] bg-gradient-to-tr from-transparent via-white/20 to-transparent rotate-[15deg] -translate-y-12 pointer-events-none"></div>
+
+                      {/* Ambient soft gold glow center-left */}
+                      <div className="absolute left-[15%] top-[10%] w-32 h-32 bg-white/40 rounded-full blur-2xl pointer-events-none"></div>
+
+                      {/* Soft radial glow behind delivery rider */}
+                      <div className="absolute right-[-10%] top-[-10%] w-[65%] h-[120%] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.6)_0%,transparent_70%)] opacity-80 pointer-events-none"></div>
+
+                      {/* Glassmorphic frosted highlights */}
+                      <div className="absolute inset-0 bg-white/[0.05] backdrop-blur-[0.2px] pointer-events-none"></div>
+
+                      {/* Cinematic dark shadow overlay for text readability (subtle yellow gradient protection) */}
+                      <div className="absolute inset-y-0 left-0 w-[60%] bg-gradient-to-r from-[#FFD84D]/25 via-transparent to-transparent pointer-events-none"></div>
+
                       {/* Premium rider mascot background */}
-                      <div className="absolute inset-y-0 right-1 w-[40%] overflow-hidden flex items-center justify-center">
-                        <img 
-                          src="/src/assets/images/yellow_delivery_rider_1782129458782.jpg" 
-                          alt="Premium BLUBER rider mascot on Vespa" 
-                          className="w-full h-full object-contain object-right"
-                          referrerPolicy="no-referrer"
-                        />
+                      <div className="absolute inset-y-0 right-0 w-[45%] overflow-hidden flex items-center justify-end">
+                        <div className="relative w-full h-full flex items-center justify-end pr-2">
+                          <img 
+                            src="/src/assets/images/yellow_delivery_rider_1782129458782.jpg" 
+                            alt="Premium BLUBER rider mascot on Vespa" 
+                            className="w-full h-[95%] object-contain object-right mix-blend-multiply drop-shadow-[0_10px_20px_rgba(0,0,0,0.12)] transition-transform duration-500 group-hover:scale-[1.04]"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
                       </div>
 
-                      <div className="relative z-10 w-[60%] text-left space-y-1.5 pr-2">
-                        <span className="inline-block bg-[#1E6B3D] text-white text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
-                          CHAMBA SUPER APP
+                      <div className="relative z-10 w-[58%] text-left space-y-2.5 pr-1">
+                        <span className="inline-flex items-center bg-white/70 backdrop-blur-md text-neutral-950 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-[0_2px_10px_rgba(255,199,44,0.25)] border border-white/50">
+                          ⚡ CHAMBA SUPERAPP
                         </span>
                         <div>
-                          <h2 className="text-[17px] font-black tracking-tight text-gray-900 leading-tight">
+                          <h2 className="text-[20px] font-black tracking-tight text-neutral-950 leading-tight font-sans">
                             BLUBER is now in Chamba
                           </h2>
-                          <p className="text-[10px] text-gray-700 leading-normal mt-1 font-bold">
-                            Fast deliveries.<br />Local rides.<br />Everything you need.
+                          <p className="text-[11px] text-neutral-800 leading-relaxed mt-0.5 font-bold font-sans">
+                            Fast deliveries • Local rides • Food & Groceries
                           </p>
                         </div>
 
                         <button 
                           onClick={() => handleOpenGrocery("fruits")}
-                          className="bg-gray-900 border border-gray-900 text-white hover:bg-gray-800 text-[10px] font-black px-4 py-2.5 rounded-full shadow-md flex items-center gap-1 active:scale-95 transition-all cursor-pointer mt-1"
+                          className="bg-neutral-950 hover:bg-neutral-900 text-white text-[10px] font-black px-5 py-2.5 rounded-full shadow-[0_12px_30px_rgba(0,0,0,0.25)] flex items-center gap-2 active:scale-95 transition-all cursor-pointer mt-1"
                         >
                           Order Now
+                          <span className="text-yellow-400 font-bold">➔</span>
                         </button>
                       </div>
                     </div>
@@ -761,51 +957,231 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 2. Services Grid */}
-                  <div id="primary-services-grid" className="pt-2 text-left">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xs font-bold text-[#111827] uppercase tracking-widest opacity-80">Services</h3>
-                      <button onClick={() => setActiveTab("explore")} className="text-[10px] font-black text-primary hover:underline cursor-pointer bg-none border-none">See all</button>
+                  {/* 2. V-Mart Coming Soon Compact Announcement Banner */}
+                  <div id="vmart-teaser-banner" className="bg-gradient-to-r from-[#111827] via-[#1E1B4B] to-[#0F172A] text-white rounded-2xl p-4 border border-indigo-500/20 shadow-md relative overflow-hidden text-left mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* Glowing background */}
+                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none"></div>
+                    
+                    <div className="flex items-center gap-3">
+                      {/* V-Mart Premium Logo Representation */}
+                      <div className="bg-white px-2.5 py-1.5 rounded-xl flex items-center gap-0.5 shadow-sm shrink-0 border border-slate-200 select-none">
+                        <span className="text-red-600 font-black text-[13px] tracking-tighter font-sans">V</span>
+                        <span className="text-blue-800 font-extrabold text-[12px] tracking-tight font-sans">Mart</span>
+                      </div>
+                      
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-xs font-black tracking-tight text-white font-sans">V-Mart Coming Soon</h4>
+                          <span className="bg-indigo-500/20 border border-indigo-400/30 text-[#818CF8] px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">
+                            Opening Shortly
+                          </span>
+                        </div>
+                        <p className="text-[10.5px] text-slate-300 leading-tight font-medium font-sans">
+                          Order fashion, household essentials and daily needs directly from BLUBER.
+                        </p>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-3.5 select-none text-left">
-                      {[
-                        { id: "rides", label: "Ride", icon: Bike, bgColor: "bg-[#FAF6EC]" },
-                        { id: "courier", label: "Delivery", icon: Package, bgColor: "bg-[#EAF2EC]" },
-                        { id: "grocery", label: "Grocery", icon: Apple, bgColor: "bg-[#E9F5EF]" },
-                        { id: "food", label: "Food", icon: Utensils, bgColor: "bg-[#FAF0E6]" },
-                        { id: "ice_cream", label: "Ice Cream", icon: IceCream, bgColor: "bg-[#F3EBF5]" },
-                        { id: "beauty", label: "Beauty", icon: Sparkles, bgColor: "bg-[#F0E6F7]" },
-                        { id: "household", label: "Household", icon: Home, bgColor: "bg-[#E6EEF8]" },
-                        { id: "custom_order", label: "Custom Orders", icon: FileText, bgColor: "bg-[#EEF1F7]" }
-                      ].map((service) => {
-                        const IconComponent = service.icon;
-                        return (
-                          <div 
-                            key={service.id}
-                            onClick={() => {
-                              if (service.id === "rides") {
-                                setIsEliteRide(false);
-                                setIsRiding(true);
-                              }
-                              else if (service.id === "courier") setIsCouriering(true);
-                              else if (service.id === "grocery") handleOpenGrocery("fruits");
-                              else if (service.id === "ice_cream") handleOpenGrocery("icecream");
-                              else if (service.id === "beauty") handleOpenGrocery("beauty");
-                              else if (service.id === "household") handleOpenGrocery("household");
-                              else if (service.id === "food") setSelectedShop({ id: "cafe_hilltop", type: "restaurant" });
-                              else if (service.id === "custom_order") setIsCustomOrder(true);
-                            }}
-                            className={`${service.bgColor} rounded-[20px] py-4 px-2.5 flex flex-col items-center justify-between cursor-pointer transition-all duration-300 active:scale-[0.94] hover:-translate-y-0.5 shadow-[0_2px_12px_rgba(0,0,0,0.015)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.04)] border border-black/[0.01] h-[92px]`}
+
+                    <button
+                      type="button"
+                      onClick={handleToggleVMartNotification}
+                      className={`shrink-0 text-[10.5px] font-black py-2.5 px-4 rounded-xl transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${
+                        isNotifiedVMart 
+                          ? "bg-emerald-500 text-white shadow-sm" 
+                          : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_4px_12px_rgba(79,70,229,0.3)]"
+                      }`}
+                    >
+                      {isNotifiedVMart ? (
+                        <>
+                          <CheckCircle size={12} className="stroke-[3] text-white" />
+                          <span>You'll Be Notified</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bell size={12} className="text-white" />
+                          <span>Notify Me</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Scooty Ride Service Card (Moved above Categories for Primary Action Hierarchy) */}
+                  <div id="ride-services-section" className="pt-2 text-left mb-6">
+                    <div 
+                      onClick={() => {
+                        setIsEliteRide(true);
+                        setIsRiding(true);
+                      }}
+                      className="bg-gradient-to-br from-neutral-900 via-[#1E293B] to-neutral-950 text-white rounded-[32px] p-6 border border-[#10B981]/20 shadow-[0_20px_40px_rgba(16,185,129,0.07)] flex flex-col space-y-4 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:-translate-y-1 hover:scale-[1.01] active:translate-y-0 active:scale-[0.99] hover:shadow-[0_24px_50px_rgba(16,185,129,0.12)] hover:border-[#10B981]/35 group"
+                    >
+                      {/* Premium light streak & soft ambient lighting */}
+                      <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/15 transition-all"></div>
+                      <div className="absolute inset-0 bg-white/[0.01] pointer-events-none"></div>
+
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                          <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-400/20 text-[#34D399] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                            24×7 Available
+                          </span>
+                          <h4 className="text-[17px] font-black text-white tracking-tight leading-tight font-sans">
+                            24×7 Scooty Ride Service
+                          </h4>
+                          <p className="text-[11.5px] text-slate-300 leading-relaxed font-sans max-w-[240px]">
+                            Fast, affordable and reliable rides across Chamba.
+                          </p>
+                        </div>
+                        <div className="relative flex items-center justify-center p-3.5 rounded-[22px] bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/60 shadow-[0_8px_20px_rgba(0,0,0,0.3)] shadow-emerald-500/[0.06] backdrop-blur-md overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-emerald-500/30 group-hover:shadow-emerald-500/10">
+                          {/* Soft internal gradient glow */}
+                          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 via-transparent to-transparent opacity-60"></div>
+                          <svg 
+                            width="28" 
+                            height="28" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="text-emerald-400 drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-105"
                           >
-                            <div className="flex items-center justify-center shrink-0 mt-0.5">
-                              <IconComponent size={24} strokeWidth={2} className="text-[#1F2937]" />
-                            </div>
-                            <span className="text-[#111827] text-[10px] font-bold text-center truncate w-full leading-tight select-none mb-0.5 pr-0.5">
-                              {service.label}
-                            </span>
-                          </div>
-                        );
-                      })}
+                            {/* Rear Wheel */}
+                            <circle cx="6" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <circle cx="6" cy="17" r="0.75" fill="currentColor" />
+                            
+                            {/* Front Wheel */}
+                            <circle cx="18" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <circle cx="18" cy="17" r="0.75" fill="currentColor" />
+                            
+                            {/* Floorboard / Deck */}
+                            <path d="M8.5 17h6.5c0.8 0 1.2-0.4 1.2-1.2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            
+                            {/* Chassis / Body */}
+                            <path d="M6 14.5c0-2.5 1.5-3.5 3.5-3.5h3c1 0 1.5 0.5 1.5 1.5v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            
+                            {/* Premium Seat */}
+                            <path d="M7.5 11h4.5c0.8 0 1.2-0.4 1.2-1v-0.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            
+                            {/* Steering Fork & Front Fender */}
+                            <path d="M18 14.5l-2.5-7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            
+                            {/* Front Cowl & Handlebar */}
+                            <path d="M15.5 7h-2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M12.5 6h4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      </div>
+                      
+                      <div className="text-[10.5px] text-slate-400 leading-relaxed bg-slate-900/40 p-3 rounded-2xl border border-white/[0.03] space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#34D399] font-bold">✓</span>
+                          <span><strong>Availability:</strong> 24 Hours, 7 Days A Week</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#34D399] font-bold mt-0.5">✓</span>
+                          <span><strong>Coverage:</strong> Quick transit within Chamba municipal limits.</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-white/[0.06] mt-1 gap-4">
+                        <div>
+                          <p className="text-[9px] text-[#34D399] font-black uppercase tracking-widest leading-none">Affordable Base Price</p>
+                          <p className="text-[18px] font-black text-white mt-1.5">₹40 <span className="text-[11px] text-slate-400 font-medium">/ KM</span></p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsEliteRide(true);
+                            setIsRiding(true);
+                          }}
+                          className="bg-[#10B981] hover:bg-[#34D399] text-neutral-950 text-[11px] font-black py-3 px-5 rounded-2xl shadow-[0_4px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.4)] transition-all flex items-center gap-2 border-none cursor-pointer h-11"
+                        >
+                          <span>Book Scooty Ride</span>
+                          <ArrowRight size={13} className="stroke-[3]" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* BLUBER Elite Experiences Section */}
+                  <div id="elite-experiences-section" className="pt-2 text-left mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-sm font-black text-text-primary tracking-tight font-sans">✨ BLUBER Elite Experiences</h3>
+                      <span className="text-[8.5px] font-extrabold tracking-[0.15em] uppercase text-slate-400 bg-slate-100 border border-slate-200/50 px-2.5 py-0.5 rounded-full font-sans">
+                        Invitation Only
+                      </span>
+                    </div>
+
+                    <div 
+                      onClick={() => setIsEliteWaitlistOpen(true)}
+                      className="bg-neutral-950 text-white rounded-[32px] p-6 border border-white/[0.08] shadow-[0_20px_45px_rgba(0,0,0,0.15)] flex flex-col space-y-4 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:-translate-y-1 hover:scale-[1.01] active:translate-y-0 active:scale-[0.99] group"
+                    >
+                      {/* Premium light streak and soft ambient lighting (Apple & Soho House Style) */}
+                      <div className="absolute top-0 right-0 w-44 h-44 bg-gradient-to-b from-white/[0.02] to-transparent rounded-full blur-3xl pointer-events-none"></div>
+                      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-slate-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="space-y-2">
+                          <span className="inline-flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] text-slate-300 px-3 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-[0.15em] leading-none">
+                            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse"></span>
+                            Coming Soon
+                          </span>
+                          <h4 className="text-[17px] font-extrabold text-white tracking-tight leading-tight font-sans">
+                            Need a Company?
+                          </h4>
+                          <p className="text-[11.5px] text-slate-400 leading-relaxed font-sans max-w-[270px]">
+                            Verified companions for shopping, cafés, local exploration, events and city assistance.
+                          </p>
+                        </div>
+                        <div className="relative flex items-center justify-center p-3.5 rounded-[22px] bg-white/[0.03] border border-white/[0.06] shadow-md overflow-hidden transition-all duration-300 group-hover:bg-white/[0.05] group-hover:border-white/[0.12] shrink-0">
+                          <Compass size={28} className="text-slate-300 transition-transform duration-550 group-hover:rotate-45" />
+                        </div>
+                      </div>
+
+                      {/* Info highlights inside card */}
+                      <div className="text-[10.5px] text-slate-400 leading-relaxed bg-white/[0.02] p-3.5 rounded-2xl border border-white/[0.04] space-y-2 font-sans">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 font-bold">✓</span>
+                          <span><strong>Vetted Partners:</strong> Background-verified local guides and lifestyle facilitators.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-slate-400 font-bold mt-0.5">✓</span>
+                          <span><strong>Absolute Discretion:</strong> Highly professional, secure & private companion concierge.</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-white/[0.06] mt-1 gap-4">
+                        <div>
+                          <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-[0.15em] leading-none">Vetting Status</p>
+                          <p className="text-[13px] font-bold text-slate-300 mt-1.5">
+                            {isNotifiedEliteBuddy ? "Priority Queue Secured" : "Applications Open"}
+                          </p>
+                        </div>
+
+                        {isNotifiedEliteBuddy ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsEliteWaitlistOpen(true);
+                            }}
+                            className="bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] text-white text-[11px] font-black py-3 px-5 rounded-2xl transition-all flex items-center gap-2 cursor-pointer h-11"
+                          >
+                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                            <span>On Waitlist (#247)</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsEliteWaitlistOpen(true);
+                            }}
+                            className="bg-white hover:bg-slate-200 text-neutral-950 text-[11px] font-black py-3 px-5 rounded-2xl shadow-md transition-all flex items-center gap-2 border-none cursor-pointer h-11"
+                          >
+                            <span>Join Waitlist</span>
+                            <ArrowRight size={13} className="stroke-[3]" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -857,64 +1233,178 @@ export default function App() {
                   </div>
 
                   {/* 4. Featured Products */}
-                  <div id="featured-products" className="text-left pt-2">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-sm font-black text-text-primary tracking-tight">🔥 Featured Products</h3>
-                      <button onClick={() => handleOpenGrocery("fruits")} className="text-[10px] font-bold text-primary hover:underline cursor-pointer bg-none border-none">See all</button>
+                  <div id="featured-products" className="text-left pt-2 pb-5">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles size={16} className="text-primary" />
+                        <h3 className="text-sm font-black text-text-primary tracking-tight font-sans">Featured Products</h3>
+                      </div>
+                      <button onClick={() => setActiveTab("explore")} className="text-[10.5px] font-bold text-primary hover:underline cursor-pointer bg-none border-none font-sans">See all</button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      {DIRECT_GROCERY_PRODUCTS.slice(0, 8).map((prod) => {
-                        const inCart = (cart || []).find(item => item.id === prod.id);
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+                      {[
+                        {
+                          id: "fp_pizza",
+                          name: "Margherita Pizza",
+                          category: "Pizza",
+                          price: 249,
+                          image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400&auto=format&fit=crop",
+                          shopId: "cafe_hilltop",
+                          shopName: "Cafe Hilltop",
+                          type: "food" as const
+                        },
+                        {
+                          id: "fp_burger",
+                          name: "Veg Burger",
+                          category: "Fast Food",
+                          price: 119,
+                          image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=400&auto=format&fit=crop",
+                          shopId: "cafe_hilltop",
+                          shopName: "Cafe Hilltop",
+                          type: "food" as const
+                        },
+                        {
+                          id: "fp_fries",
+                          name: "French Fries",
+                          category: "Fast Food",
+                          price: 99,
+                          image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?q=80&w=400&auto=format&fit=crop",
+                          shopId: "cafe_hilltop",
+                          shopName: "Cafe Hilltop",
+                          type: "food" as const
+                        },
+                        {
+                          id: "fp_momos",
+                          name: "Momos",
+                          category: "Fast Food",
+                          price: 129,
+                          image: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?q=80&w=400&auto=format&fit=crop",
+                          shopId: "cafe_hilltop",
+                          shopName: "Cafe Hilltop",
+                          type: "food" as const
+                        },
+                        {
+                          id: "fp_coffee",
+                          name: "Cold Coffee",
+                          category: "Beverages",
+                          price: 139,
+                          image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=400&auto=format&fit=crop",
+                          shopId: "cafe_hilltop",
+                          shopName: "Cafe Hilltop",
+                          type: "food" as const
+                        },
+                        {
+                          id: "fp_soda",
+                          name: "Soft Drinks",
+                          category: "Beverages",
+                          price: 45,
+                          image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=400&auto=format&fit=crop",
+                          shopId: "cafe_hilltop",
+                          shopName: "Cafe Hilltop",
+                          type: "food" as const
+                        },
+                        {
+                          id: "fp_icecream",
+                          name: "Ice Cream Tubs",
+                          category: "Ice Cream",
+                          price: 219,
+                          image: "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?q=80&w=400&auto=format&fit=crop",
+                          shopId: "cafe_hilltop",
+                          shopName: "Cafe Hilltop",
+                          type: "food" as const
+                        },
+                        {
+                          id: "fp_chocolate",
+                          name: "Chocolate Bars",
+                          category: "Snacks",
+                          price: 80,
+                          image: "https://images.unsplash.com/photo-1511381939415-e44015466834?q=80&w=400&auto=format&fit=crop",
+                          shopId: "malik_general",
+                          shopName: "Mallik General Store",
+                          type: "grocery" as const
+                        },
+                        {
+                          id: "fp_chips",
+                          name: "Chips",
+                          category: "Snacks",
+                          price: 30,
+                          image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?q=80&w=400&auto=format&fit=crop",
+                          shopId: "malik_general",
+                          shopName: "Mallik General Store",
+                          type: "grocery" as const
+                        },
+                        {
+                          id: "fp_noodles",
+                          name: "Instant Noodles",
+                          category: "Essentials",
+                          price: 60,
+                          image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?q=80&w=400&auto=format&fit=crop",
+                          shopId: "malik_general",
+                          shopName: "Mallik General Store",
+                          type: "grocery" as const
+                        }
+                      ].map((prod) => {
+                        const qty = cart.find(ci => ci.id === prod.id)?.quantity || 0;
                         return (
                           <div 
-                            key={prod.id}
-                            className="bg-white rounded-[24px] p-3 flex flex-col justify-between border border-border-custom/30 shadow-xs hover:shadow-sm"
+                            key={prod.id} 
+                            className="bg-white rounded-[20px] p-2.5 border border-border-custom/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] hover:scale-[1.01] active:scale-[0.99] transition-all text-left"
                           >
-                            <div className="flex flex-col">
-                              <div className="w-full h-28 bg-slate-50 rounded-2xl overflow-hidden flex items-center justify-center border border-gray-100 mb-2.5 relative">
-                                <img 
-                                  src={prod.image} 
-                                  alt={prod.name} 
-                                  loading="lazy"
-                                  className="w-full h-full object-cover select-none"
-                                  onError={(e) => {
-                                    e.currentTarget.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop";
-                                  }}
-                                />
-                              </div>
-                              <div className="w-full">
-                                <h4 className="text-[11px] font-bold text-text-primary line-clamp-2 leading-tight min-h-[32px]">{prod.name}</h4>
-                                <span className="text-[9.5px] text-text-secondary font-black tracking-tight uppercase block mt-1">{prod.unit}</span>
-                              </div>
+                            <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-neutral-50 border border-neutral-100/30">
+                              <ImageComponent
+                                src={prod.image}
+                                alt={prod.name}
+                                fallbackName={prod.name}
+                                fallbackType={prod.type === "food" ? "food" : "product"}
+                                categoryText={prod.category}
+                                className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                              />
+                              <span className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-xs text-[7px] font-black text-text-primary px-1.5 py-0.5 rounded-full uppercase border border-border-custom/30 font-sans tracking-wide scale-90 origin-top-left">
+                                {prod.category}
+                              </span>
                             </div>
-
-                            <div className="flex items-center justify-between mt-3.5 w-full">
-                              <span className="text-xs font-black text-text-primary">₹{prod.price}</span>
-                              {inCart ? (
-                                <div className="flex items-center border border-primary/20 bg-[#EDF7EF] rounded-lg overflow-hidden h-7">
-                                  <button 
-                                    onClick={() => handleRemoveFromCart(prod.id)}
-                                    className="px-2 h-full text-xs font-black text-primary hover:bg-emerald-100 transition-colors cursor-pointer"
+                            
+                            <div className="mt-2 flex-1 flex flex-col justify-between">
+                              <div>
+                                <h4 className="text-[11px] font-extrabold text-neutral-800 leading-tight font-sans tracking-tight line-clamp-2 h-[34px] flex items-center">
+                                  {prod.name}
+                                </h4>
+                                <p className="text-[8px] text-text-secondary mt-0.5 font-bold uppercase tracking-wider font-sans">
+                                  {prod.category}
+                                </p>
+                              </div>
+                              
+                              <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-dashed border-border-custom/25">
+                                <span className="text-[12px] font-black text-text-primary font-mono">
+                                  ₹{prod.price}
+                                </span>
+                                
+                                {qty > 0 ? (
+                                  <div className="flex items-center bg-primary text-white rounded-lg px-2 py-0.5 gap-2 text-xs font-black shadow-xs border border-primary/20">
+                                    <button
+                                      onClick={() => handleRemoveFromCart(prod.id)}
+                                      className="hover:scale-110 active:scale-90 transition-transform font-bold outline-none bg-transparent text-white border-none cursor-pointer p-0"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="font-mono text-[10px]">{qty}</span>
+                                    <button
+                                      onClick={() => handleAddToCart(prod, prod.shopId, prod.shopName, prod.type)}
+                                      className="hover:scale-110 active:scale-90 transition-transform font-bold outline-none bg-transparent text-white border-none cursor-pointer p-0"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => handleAddToCart(prod, prod.shopId, prod.shopName, prod.type)}
+                                    className="bg-primary hover:bg-[#1E6B3D] text-white text-[9.5px] font-black px-2.5 py-1 rounded-lg border-none shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer uppercase tracking-wider flex items-center gap-1 font-sans"
                                   >
-                                    -
+                                    Add
                                   </button>
-                                  <span className="px-1.5 text-xs font-bold text-primary">{inCart.quantity}</span>
-                                  <button 
-                                    onClick={() => handleAddToCart({ id: prod.id, name: prod.name, price: prod.price, unit: prod.unit, image: prod.image }, "direct_grocery", "Bluber Direct Sourcing", "grocery")}
-                                    className="px-2 h-full text-xs font-black text-primary hover:bg-emerald-100 transition-colors cursor-pointer"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              ) : (
-                                <button 
-                                  onClick={() => handleAddToCart({ id: prod.id, name: prod.name, price: prod.price, unit: prod.unit, image: prod.image }, "direct_grocery", "Bluber Direct Sourcing", "grocery")}
-                                  className="border border-primary text-primary hover:bg-[#EDF7EF] text-[10px] font-black px-3 py-1 rounded-lg shadow-inner active:scale-95 transition-all cursor-pointer h-7 flex items-center justify-center uppercase"
-                                >
-                                  + ADD
-                                </button>
-                              )}
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
@@ -941,11 +1431,14 @@ export default function App() {
                           onClick={() => setSelectedShop({ id: foodShop.targetId, type: "restaurant" })}
                           className="bg-white w-52 rounded-[24px] overflow-hidden shadow-sm hover:scale-[1.02] cursor-pointer transition-all shrink-0 text-left border border-border-custom/40"
                         >
-                          <div className="relative h-28 w-full">
-                            <img src={foodShop.image} alt={foodShop.name} className="w-full h-full object-cover" />
-                            <span className="absolute top-3 left-3 bg-[#111827]/85 backdrop-blur-sm text-white text-[9px] font-black px-2 py-0.5 rounded-full">
-                              {foodShop.eta}
-                            </span>
+                          <div className="relative h-28 w-full bg-neutral-50">
+                            <ImageComponent 
+                              src={foodShop.image} 
+                              alt={foodShop.name} 
+                              fallbackName={foodShop.name}
+                              fallbackType="restaurant"
+                              className="w-full h-full object-cover" 
+                            />
                           </div>
                           
                           <div className="p-3.5 space-y-1">
@@ -970,54 +1463,12 @@ export default function App() {
                   {/* 6. Custom Order Section */}
                   <div id="custom-order-section" className="text-left pt-2 space-y-6">
                     <div className="flex justify-between items-center mb-1">
-                      <h3 className="text-sm font-black text-text-primary tracking-tight">✨ Custom Sourcing & Elite Rides</h3>
+                      <h3 className="text-sm font-black text-text-primary tracking-tight font-sans">✨ Custom Sourcing Services</h3>
                     </div>
 
                     <CustomRequestsHomeWidget 
                       onAddCustomRequest={handleAddCustomOrder}
                     />
-
-                    <div id="ride-services-section">
-                      <div 
-                        onClick={() => {
-                          setIsEliteRide(true);
-                          setIsRiding(true);
-                        }}
-                        className="bg-gradient-to-br from-[#111827] to-[#1E6B3D] text-white rounded-[28px] p-5 border border-emerald-500/20 shadow-md flex flex-col space-y-3 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:-translate-y-1 hover:scale-[1.015] active:translate-y-0 active:scale-[0.99] hover:shadow-[0_24px_50px_-10px_rgba(163,230,53,0.3)] hover:border-emerald-400/50"
-                      >
-                        <div className="absolute -top-6 -right-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl"></div>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="bg-[#a3e635] text-indigo-950 px-2.5 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-wider">
-                              Elite Scooty Service
-                            </span>
-                            <h4 className="text-sm font-black text-white mt-2 leading-none">Premium Two-Wheeler Convenience</h4>
-                            <p className="text-[10px] text-emerald-100/90 leading-snug mt-1.5 font-semibold">
-                              Fast • Reliable • 24×7 Availability
-                            </p>
-                          </div>
-                          <span className="text-2xl">🛵</span>
-                        </div>
-                        
-                        <div className="text-[10.5px] text-gray-300 leading-normal border-t border-white/10 pt-2 space-y-0.5">
-                          <p>• <strong>Availability:</strong> 24 Hours, 7 Days A Week</p>
-                          <p>• <strong>Ideal for:</strong> Selected customers within Chamba limits looking for premium, prompt travel.</p>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-white/10 mt-1">
-                          <div>
-                            <p className="text-[9px] text-emerald-200 font-extrabold uppercase leading-none">Affordable Base Price</p>
-                            <p className="text-base font-black text-white mt-1">₹40 <span className="text-[10px] text-gray-300 font-medium">per KM</span></p>
-                          </div>
-                          <button
-                            type="button"
-                            className="bg-[#a3e635] hover:bg-[#bbf64a] text-indigo-950 text-[11px] font-black py-2.5 px-6 rounded-xl shadow-md transition-all block border-none cursor-pointer"
-                          >
-                            Book Elite Scooty
-                          </button>
-                        </div>
-                      </div>
-                    </div>
 
                     <div id="ride-demand-feedback">
                       <div className="bg-[#EDF7EF] rounded-[28px] p-5 border border-[#1E6B3D]/10 flex flex-col items-start gap-3 relative overflow-hidden">
@@ -1172,7 +1623,7 @@ export default function App() {
         {/* 3. CONSTANT NATIVE BOTTOM NAVIGATION */}
         <nav 
           id="app-bottom-nav" 
-          className="absolute bottom-0 inset-x-0 h-[84px] bg-white border-t border-border-custom px-5 flex items-center justify-between z-40"
+          className="absolute bottom-0 inset-x-0 h-[84px] pb-3 bg-white/80 backdrop-blur-xl border-t border-black/[0.04] px-4 flex items-center justify-between z-40 select-none"
         >
           {[
             { id: "home" as const, label: "Home", icon: Home },
@@ -1198,27 +1649,63 @@ export default function App() {
                   setIsAdminOpen(false);
                   setActiveTab(tab.id);
                 }}
-                className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-all duration-150 relative border-none bg-transparent ${
-                  isSelected ? "scale-105" : "hover:opacity-80"
-                }`}
+                className="flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative border-none bg-transparent outline-none focus:outline-none"
               >
-                <div className="relative">
-                  <tab.icon 
-                    size={24} 
-                    className={isSelected ? "text-[#1E6B3D]" : "text-[#9CA3AF]"} 
-                    fill={isSelected ? "currentColor" : "none"}
+                {/* Floating translucent premium pill background with active sliding motion */}
+                {isSelected && (
+                  <motion.div
+                    layoutId="active-nav-pill"
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 30,
+                    }}
+                    className="absolute inset-y-2 inset-x-1.5 rounded-2xl bg-[#1E6B3D]/[0.07] border border-[#1E6B3D]/[0.08] shadow-[0_6px_20px_rgba(30,107,61,0.06)] pointer-events-none"
                   />
-                  {isCart && cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white">
-                      {cartCount}
-                    </span>
-                  )}
+                )}
+
+                {/* Content wrapper with scale/translate animation */}
+                <div className="flex flex-col items-center justify-center w-full h-full relative z-10">
+                  <motion.div
+                    animate={{
+                      scale: isSelected ? 1.08 : 1,
+                      y: isSelected ? -3 : 0,
+                    }}
+                    whileTap={{ scale: 0.94 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 420,
+                      damping: 24,
+                    }}
+                    className="relative flex items-center justify-center p-1"
+                  >
+                    <tab.icon 
+                      size={21} 
+                      className={`transition-colors duration-200 stroke-[1.6] ${
+                        isSelected ? "text-[#1E6B3D]" : "text-neutral-400"
+                      }`}
+                      fill="none"
+                    />
+                    {isCart && cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1.5 bg-rose-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-xs">
+                        {cartCount}
+                      </span>
+                    )}
+                  </motion.div>
+
+                  <motion.span
+                    animate={{
+                      opacity: isSelected ? 1 : 0.6,
+                      scale: isSelected ? 1 : 0.96,
+                    }}
+                    transition={{ duration: 0.2 }}
+                    className={`text-[9.5px] font-sans font-bold tracking-tight mt-0.5 transition-colors duration-200 ${
+                      isSelected ? "text-[#1E6B3D]" : "text-neutral-500"
+                    }`}
+                  >
+                    {tab.label}
+                  </motion.span>
                 </div>
-                <span className={`text-[10px] mt-1 font-bold tracking-tight ${
-                  isSelected ? "text-[#1E6B3D]" : "text-[#9CA3AF]"
-                }`}>
-                  {tab.label}
-                </span>
               </button>
             );
           })}
@@ -1248,6 +1735,13 @@ export default function App() {
             </div>
           </div>
         )}
+
+        <EliteWaitlistModal 
+          isOpen={isEliteWaitlistOpen} 
+          onClose={() => setIsEliteWaitlistOpen(false)} 
+          onSubmit={handleJoinEliteWaitlist} 
+          initialData={eliteBuddyData} 
+        />
 
       </div>
     </div>

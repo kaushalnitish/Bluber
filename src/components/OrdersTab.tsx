@@ -19,17 +19,25 @@ import {
   Sparkles,
   Check,
   X,
-  Smartphone
+  Smartphone,
+  RotateCcw
 } from "lucide-react";
 import { Order } from "../types";
+import { ImageComponent } from "./ImageComponent";
 
 interface OrdersTabProps {
   orders: Order[];
   onAdvanceOrderStatus: (orderId: string, customStatus?: any) => void;
   onCancelOrder: (orderId: string) => void;
+  onReorder?: (order: Order) => void;
 }
 
-export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onAdvanceOrderStatus, onCancelOrder }) => {
+export const OrdersTab: React.FC<OrdersTabProps> = ({ 
+  orders, 
+  onAdvanceOrderStatus, 
+  onCancelOrder,
+  onReorder 
+}) => {
   const activeOrders = orders.filter(o => o.status !== "Delivered" && o.status !== "Cancelled");
   const pastOrders = orders.filter(o => o.status === "Delivered" || o.status === "Cancelled");
 
@@ -345,13 +353,12 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onAdvanceOrderStat
               <div className="border border-border-custom/40 bg-canvas/30 rounded-2xl p-3 flex justify-between items-center text-xs">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-border-custom bg-white">
-                    <img 
+                    <ImageComponent 
                       src={activeOrderTrack.riderPhoto || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop"} 
                       alt={activeOrderTrack.riderName} 
+                      fallbackName={activeOrderTrack.riderName}
+                      fallbackType="avatar"
                       className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop";
-                      }}
                     />
                   </div>
                   <div className="text-left">
@@ -440,7 +447,41 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onAdvanceOrderStat
           {/* RIDER-SIDE PERSPECTIVE simulation Panel */}
           <div className="bg-slate-900 text-white rounded-[24px] p-5 text-left border border-slate-700/50 shadow-md space-y-3 relative overflow-hidden">
             {/* Background vehicle overlay */}
-            <div className="absolute -bottom-6 -right-6 text-7xl opacity-5">🛵</div>
+            <div className="absolute -bottom-4 -right-4 w-28 h-28 opacity-[0.03] text-white pointer-events-none">
+              <svg 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="w-full h-full"
+              >
+                {/* Rear Wheel */}
+                <circle cx="6" cy="17" r="2.5" />
+                <circle cx="6" cy="17" r="0.75" fill="currentColor" />
+                
+                {/* Front Wheel */}
+                <circle cx="18" cy="17" r="2.5" />
+                <circle cx="18" cy="17" r="0.75" fill="currentColor" />
+                
+                {/* Floorboard / Deck */}
+                <path d="M8.5 17h6.5c0.8 0 1.2-0.4 1.2-1.2v-1" />
+                
+                {/* Chassis / Body */}
+                <path d="M6 14.5c0-2.5 1.5-3.5 3.5-3.5h3c1 0 1.5 0.5 1.5 1.5v2" />
+                
+                {/* Premium Seat */}
+                <path d="M7.5 11h4.5c0.8 0 1.2-0.4 1.2-1v-0.5" />
+                
+                {/* Steering Fork & Front Fender */}
+                <path d="M18 14.5l-2.5-7.5" />
+                
+                {/* Front Cowl & Handlebar */}
+                <path d="M15.5 7h-2.5" />
+                <path d="M12.5 6h4.5" />
+              </svg>
+            </div>
 
             <div className="flex items-center gap-1.5 pb-2 border-b border-slate-800">
               <Smartphone size={16} className="text-primary animate-pulse" />
@@ -560,10 +601,23 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onAdvanceOrderStat
                     </div>
                   </div>
 
-                  <div className="mt-3 text-[10.5px] text-text-secondary flex justify-between items-center bg-canvas/35 p-2 rounded-xl border border-border-custom/20">
+                  <div className="mt-3 text-[10.5px] text-text-secondary flex justify-between items-center bg-canvas/35 p-2.5 rounded-xl border border-border-custom/20">
                     <span className="truncate max-w-[210px] font-medium">{order.itemsSummary}</span>
-                    <span className="font-mono text-[9px] font-bold text-text-secondary">{order.id}</span>
+                    <span className="font-mono text-[9px] font-bold text-text-secondary shrink-0">{order.id}</span>
                   </div>
+
+                  {/* Reorder section for purchases */}
+                  {(order.type === "Food" || order.type === "Grocery" || order.type === "Medicine") && onReorder && (
+                    <div className="mt-3.5 pt-3 border-t border-dashed border-border-custom/30 flex justify-end">
+                      <button
+                        onClick={() => onReorder(order)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1E6B3D]/[0.08] hover:bg-[#1E6B3D]/[0.12] border border-[#1E6B3D]/[0.1] text-[#1E6B3D] hover:scale-[1.02] active:scale-[0.98] transition-all text-[10.5px] font-bold rounded-lg cursor-pointer"
+                      >
+                        <RotateCcw size={12} className="stroke-[2.5]" />
+                        <span>Reorder Items</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -579,9 +633,11 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onAdvanceOrderStat
             <div className="bg-primary p-4 text-white flex justify-between items-center text-left shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-white/20 overflow-hidden border border-white/20">
-                  <img 
+                  <ImageComponent 
                     src={activeOrderTrack.riderPhoto || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop"} 
                     alt={activeOrderTrack.riderName} 
+                    fallbackName={activeOrderTrack.riderName}
+                    fallbackType="avatar"
                     className="w-full h-full object-cover" 
                   />
                 </div>

@@ -16,6 +16,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { Restaurant, Store, CartItem } from "../types";
+import { ImageComponent } from "./ImageComponent";
 
 interface ShopDetailProps {
   shop: Restaurant | Store;
@@ -120,10 +121,12 @@ export const ShopDetail: React.FC<ShopDetailProps> = ({
   return (
     <div id="shop-detail-root" className="bg-canvas min-h-screen animate-fade-in pb-28 text-left">
       {/* Immersive Photo Hero Header */}
-      <div className="relative h-64 w-full overflow-hidden">
-        <img 
+      <div className="relative h-64 w-full overflow-hidden bg-neutral-900">
+        <ImageComponent 
           src={shop.image} 
           alt={shop.name}
+          fallbackName={shop.name}
+          fallbackType={type}
           className="w-full h-full object-cover select-none"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/15"></div>
@@ -180,15 +183,15 @@ export const ShopDetail: React.FC<ShopDetailProps> = ({
                 >
                   {/* Top: Large Image (60-70% visual weight) */}
                   <div className="relative w-full h-32 bg-canvas rounded-2xl overflow-hidden mb-2.5">
-                    <img 
-                      src={item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop"} 
+                    <ImageComponent 
+                      src={item.image} 
                       alt={item.name} 
+                      fallbackName={item.name}
+                      fallbackType="food"
+                      categoryText={item.category}
                       loading="lazy"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105 select-none"
-                      onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop";
-                      }}
                     />
                     <span className="absolute top-2 left-2 bg-white/90 backdrop-blur-xs text-[8px] font-black text-text-primary px-1.5 py-0.5 rounded-full uppercase border border-border-custom/30">
                       {item.category}
@@ -251,15 +254,15 @@ export const ShopDetail: React.FC<ShopDetailProps> = ({
                 >
                   {/* Top: Large Image (60-70% visual weight) */}
                   <div className="relative w-full h-32 bg-canvas rounded-2xl overflow-hidden mb-2.5">
-                    <img 
-                      src={item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop"} 
+                    <ImageComponent 
+                      src={item.image} 
                       alt={item.name} 
+                      fallbackName={item.name}
+                      fallbackType={productType === "medicine" ? "product" : "food"}
+                      categoryText={productType}
                       loading="lazy"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105 select-none"
-                      onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop";
-                      }}
                     />
                     <span className="absolute bottom-2 left-2 bg-white/95 text-[9px] font-black text-text-primary px-1.5 py-0.5 rounded-full uppercase border border-border-custom/30">
                       {item.unit}
@@ -360,14 +363,13 @@ export const ShopDetail: React.FC<ShopDetailProps> = ({
                     <div key={item.id} className="flex justify-between items-center bg-canvas/40 p-3 rounded-2xl text-left">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-gray-100 flex items-center justify-center bg-white">
-                          <img 
-                            src={item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop"} 
+                          <ImageComponent 
+                            src={item.image} 
                             alt={item.name} 
+                            fallbackName={item.name}
+                            fallbackType="product"
                             className="w-full h-full object-cover" 
                             referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              e.currentTarget.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop";
-                            }}
                           />
                         </div>
                         <div>

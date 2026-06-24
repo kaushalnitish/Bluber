@@ -15,10 +15,16 @@ import {
   Wrench,
   ThumbsUp,
   ThumbsDown,
-  Sparkles
+  Sparkles,
+  Info,
+  MapPin,
+  Lock,
+  Settings
 } from "lucide-react";
 import { Order } from "../types";
 import { safeStorage } from "../utils/safeStorage";
+
+const MAPPING_PROVIDER = "OpenStreetMap / Leaflet";
 
 interface AdminPanelProps {
   orders: Order[];
@@ -33,7 +39,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onCancelOrder,
   onBack
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "orders" | "rides" | "customs" | "feedback" | "enquiries">("analytics");
+  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "orders" | "rides" | "customs" | "feedback" | "enquiries" | "developer">("analytics");
 
   // Load from LocalStorage
   const getFeedbackStats = () => {
@@ -163,7 +169,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           { id: "rides", label: "🏍️ Elite Rides" },
           { id: "customs", label: "📦 Customs" },
           { id: "feedback", label: "💬 Poll Responses" },
-          { id: "enquiries", label: "📩 Formspree Inbox" }
+          { id: "enquiries", label: "📩 Formspree Inbox" },
+          { id: "developer", label: "🛠️ Dev Tools" }
         ].map(sub => (
           <button
             key={sub.id}
@@ -521,6 +528,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {activeSubTab === "developer" && (
+        <div className="space-y-4 text-left animate-fade-in">
+          <div className="bg-white rounded-[24px] p-5 shadow-xs border border-border-custom space-y-4">
+            <div className="flex items-center gap-2 border-b pb-3">
+              <Settings className="text-primary w-4.5 h-4.5 animate-[spin_5s_linear_infinite]" />
+              <h3 className="text-xs font-black text-text-primary uppercase tracking-wider">System Settings & Mapping Diagnostics</h3>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 rounded-xl border bg-slate-50 border-emerald-500/10">
+              <div className="p-2 rounded-full bg-emerald-100 text-emerald-700">
+                <MapPin size={20} />
+              </div>
+              <div>
+                <p className="text-xs font-black text-text-primary">
+                  Status: ✅ Active & Production-Ready
+                </p>
+                <p className="text-[10px] text-text-secondary mt-0.5">
+                  The application has been successfully migrated to open-source geolocation services. No API key or credit card is required.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <div>
+                <p className="text-[10px] font-black text-text-primary uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-primary text-white flex items-center justify-center font-bold text-[9px]">✓</span>
+                  Map Engine
+                </p>
+                <p className="text-[11px] text-text-secondary ml-5 mt-0.5">
+                  Leaflet.js v1.9.4 rendering CartoDB Voyager raster tiles. Responsive zoom and pan controls.
+                </p>
+              </div>
+
+              <div className="border-t border-border-custom/55 pt-3">
+                <p className="text-[10px] font-black text-text-primary uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-primary text-white flex items-center justify-center font-bold text-[9px]">✓</span>
+                  Geocoding & Autocomplete API
+                </p>
+                <p className="text-[11px] text-text-secondary ml-5 mt-0.5">
+                  Nominatim OpenStreetMap Geocoding API. Performs reverse-geocoding of map clicks and real-time query suggestions.
+                </p>
+              </div>
+
+              <div className="border-t border-border-custom/55 pt-3">
+                <p className="text-[10px] font-black text-text-primary uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-primary text-white flex items-center justify-center font-bold text-[9px]">✓</span>
+                  Route Calculations
+                </p>
+                <p className="text-[11px] text-text-secondary ml-5 mt-0.5">
+                  OSRM (Open Source Routing Machine). Computes driving distance and route paths between pickup and destination dynamically.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-2xl text-[10px] text-emerald-800 text-left leading-relaxed flex gap-2">
+              <Info size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+              <span>
+                <strong>Zero Maintenance:</strong> The Leaflet + OSM stack eliminates pricing limits and billing accounts. Customers enjoy continuous, uninterrupted booking services.
+              </span>
+            </div>
+          </div>
         </div>
       )}
     </div>

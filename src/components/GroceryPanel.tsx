@@ -12,6 +12,7 @@ import {
   GROCERY_CATEGORIES as GLOBAL_CATEGORIES, 
   DIRECT_GROCERY_PRODUCTS as GLOBAL_PRODUCTS 
 } from "../data";
+import { ImageComponent } from "./ImageComponent";
 
 interface GroceryPanelProps {
   cart: CartItem[];
@@ -157,14 +158,14 @@ export const GroceryPanel: React.FC<GroceryPanelProps> = ({
               >
                 {/* Visual Image & Unit */}
                 <div className="relative w-full h-32 bg-canvas rounded-2xl overflow-hidden flex items-center justify-center mb-3">
-                  <img 
+                  <ImageComponent 
                     src={p.image} 
                     alt={p.name} 
+                    fallbackName={p.name}
+                    fallbackType="product"
+                    categoryText={p.category}
                     loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105 select-none"
-                    onError={(e) => {
-                      e.currentTarget.src = fallbackProductImage;
-                    }}
                   />
                   <span className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-xs text-[9px] font-black text-text-primary px-1.5 py-0.5 rounded-full uppercase border border-border-custom/30">
                     {p.unit}
