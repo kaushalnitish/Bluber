@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { submitToFormspree } from "../utils/formspree";
 import { 
   User, 
   MapPin, 
@@ -47,6 +48,13 @@ interface ProfileTabProps {
   onViewAllOrders: () => void;
   isNotifiedVMart?: boolean;
   onToggleVMartNotification?: () => void;
+  userProfile: { name: string; phone: string; email: string };
+  onUpdateProfile: (profile: { name: string; phone: string; email: string }) => void;
+  savedAddresses: Array<{ id: string; type: string; label: string; detail: string }>;
+  onUpdateAddresses: (addresses: Array<{ id: string; type: string; label: string; detail: string }>) => void;
+  user?: { uid: string; name: string; email: string; phone: string; photoURL?: string } | null;
+  onRequireAuth?: (pendingAction?: any) => void;
+  onLogout?: () => void;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
@@ -55,13 +63,27 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   orders,
   onViewAllOrders,
   isNotifiedVMart,
-  onToggleVMartNotification
+  onToggleVMartNotification,
+  userProfile,
+  onUpdateProfile,
+  savedAddresses,
+  onUpdateAddresses,
+  user,
+  onRequireAuth,
+  onLogout
 }) => {
   // 1. Profile State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileName, setProfileName] = useState("Nitish Kaushal");
-  const [profileEmail, setProfileEmail] = useState("NitishKaushal17@gmail.com");
+  const [profileName, setProfileName] = useState(userProfile.name);
+  const [profileEmail, setProfileEmail] = useState(userProfile.email);
+  const [profilePhone, setProfilePhone] = useState(userProfile.phone);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
+
+  useEffect(() => {
+    setProfileName(userProfile.name);
+    setProfileEmail(userProfile.email);
+    setProfilePhone(userProfile.phone);
+  }, [userProfile]);
 
   // 2. V-Mart Announcement State
   const [isNotifiedVMartInternal, setIsNotifiedVMartInternal] = useState(false);
@@ -82,11 +104,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const [selectedOrderTab, setSelectedOrderTab] = useState<"all" | "groceries" | "food" | "rides" | "custom">("all");
 
   // 5. Saved Addresses State
-  const [addresses, setAddresses] = useState([
-    { id: "addr-1", type: "Home", label: "Home Base Chamba", detail: "Near Chowgan square, Chamba Town, Himachal Pradesh" },
-    { id: "addr-2", type: "Work", label: "Work (HDFC Complex)", detail: "Chamba Market Plaza Road, Chamba" },
-    { id: "addr-3", type: "Other", label: "Khajjiar Cabin", detail: "Vista Retreat Cottage, Khajjiar Lake Road" }
-  ]);
+  const addresses = savedAddresses;
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newAddrLabel, setNewAddrLabel] = useState("");
   const [newAddrType, setNewAddrType] = useState("Home");
@@ -97,6 +115,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const [supportCategory, setSupportCategory] = useState("Rides");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [ticketLoading, setTicketLoading] = useState(false);
+  const [ticketError, setTicketError] = useState("");
 
   // 7. Rewards and Loyalty
   const [loyaltyPoints, setLoyaltyPoints] = useState(1420);
@@ -115,6 +135,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   // Handlers
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    onUpdateProfile({ name: profileName, email: profileEmail, phone: profilePhone });
     setIsEditingProfile(false);
     setProfileSuccessMsg("Profile saved successfully!");
     setTimeout(() => setProfileSuccessMsg(""), 3500);
@@ -171,22 +192,56 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
       label: newAddrLabel,
       detail: newAddrDetail
     };
-    setAddresses(prev => [...prev, newAddr]);
+    onUpdateAddresses([...savedAddresses, newAddr]);
     setNewAddrLabel("");
     setNewAddrDetail("");
     setShowAddAddress(false);
   };
 
   const handleDeleteAddress = (id: string) => {
-    setAddresses(prev => prev.filter(addr => addr.id !== id));
+    onUpdateAddresses(savedAddresses.filter(addr => addr.id !== id));
   };
 
-  const handleSubmitTicket = (e: React.FormEvent) => {
+  const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supportText.trim()) return;
-    const generatedId = `TKT-${Math.floor(100 + Math.random() * 900)}`;
-    setTicketId(generatedId);
-    setSupportText("");
+
+    // Check profile info exists
+    if (!profileName.trim()) {
+      setTicketError("Please specify your Full Name in the profile form above first.");
+      return;
+    }
+    if (!profileEmail.trim() || !/\S+@\S+\.\S+/.test(profileEmail)) {
+      setTicketError("Please enter a valid Email Address in the profile form above first.");
+      return;
+    }
+    const cleanPhone = profilePhone.replace(/[-\s+()]/g, "");
+    if (!profilePhone.trim() || cleanPhone.length < 10) {
+      setTicketError("Please enter a valid Phone Number in the profile form above first.");
+      return;
+    }
+
+    setTicketLoading(true);
+    setTicketError("");
+
+    try {
+      await submitToFormspree({
+        name: profileName,
+        email: profileEmail,
+        phone: profilePhone,
+        serviceType: "Helpdesk Ticket",
+        subject: `[Support Case] Category: ${supportCategory}`,
+        message: supportText
+      });
+
+      const generatedId = `TKT-${Math.floor(100 + Math.random() * 900)}`;
+      setTicketId(generatedId);
+      setSupportText("");
+    } catch (err) {
+      setTicketError("Failed to submit support request. Please try again.");
+    } finally {
+      setTicketLoading(false);
+    }
   };
 
   const handleCopyReferral = () => {
@@ -217,37 +272,58 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="w-16 h-16 bg-[#1E6B3D] rounded-full text-white flex items-center justify-center font-bold text-xl uppercase shadow-md border-2 border-white">
-                {profileName.split(" ").map(n => n[0]).join("")}
-              </div>
-              <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white"></span>
+              {user?.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt={profileName} 
+                  referrerPolicy="no-referrer"
+                  className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white"
+                />
+              ) : (
+                <div className="w-16 h-16 bg-[#1E6B3D] rounded-full text-white flex items-center justify-center font-bold text-xl uppercase shadow-md border-2 border-white">
+                  {profileName ? profileName.split(" ").map(n => n[0]).join("") : "G"}
+                </div>
+              )}
+              <span className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${user ? "bg-emerald-500" : "bg-gray-300"}`}></span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-extrabold text-text-primary">{profileName}</h2>
-                <span className="bg-emerald-50 text-emerald-800 text-[9px] font-black tracking-normal px-2.5 py-0.5 rounded-full uppercase">
-                  Verified
+                <h2 className="text-base font-extrabold text-text-primary">{user ? profileName : "Guest Resident"}</h2>
+                <span className={`text-[9px] font-black tracking-normal px-2.5 py-0.5 rounded-full uppercase ${user ? "bg-emerald-50 text-emerald-800" : "bg-gray-100 text-gray-500"}`}>
+                  {user ? "Verified" : "Guest"}
                 </span>
               </div>
-              <p className="text-xs text-text-secondary">{profileEmail}</p>
+              <p className="text-xs text-text-secondary mt-0.5">
+                {user ? `${profileEmail} • ${profilePhone}` : "Sign in to unlock support & addresses"}
+              </p>
               
-              <div className="flex items-center gap-1.5 mt-2">
+              <div className="flex items-center gap-1.5 mt-2.5">
                 <Award size={13} className="text-amber-500" />
                 <span className="bg-primary-light text-primary text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  Elite Resident Tier
+                  {user ? "Elite Resident Tier" : "Bronze tier browser"}
                 </span>
               </div>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsEditingProfile(!isEditingProfile)}
-            className="self-start sm:self-center bg-canvas hover:bg-slate-100 text-text-primary text-[11px] font-black px-3.5 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all border border-border-custom/50 cursor-pointer"
-          >
-            <Edit2 size={12} />
-            <span>{isEditingProfile ? "Cancel" : "Edit Profile"}</span>
-          </button>
+          {user ? (
+            <button
+              type="button"
+              onClick={() => setIsEditingProfile(!isEditingProfile)}
+              className="self-start sm:self-center bg-canvas hover:bg-slate-100 text-text-primary text-[11px] font-black px-3.5 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all border border-border-custom/50 cursor-pointer"
+            >
+              <Edit2 size={12} />
+              <span>{isEditingProfile ? "Cancel" : "Edit Profile"}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onRequireAuth?.({ type: "PROFILE" })}
+              className="self-start sm:self-center bg-primary hover:bg-[#154627] text-white text-[11px] font-black px-4 py-2.5 rounded-xl shadow-md cursor-pointer active:scale-95 transition-all border-none"
+            >
+              Secure Login / Register
+            </button>
+          )}
         </div>
 
         {profileSuccessMsg && (
@@ -257,8 +333,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         )}
 
         {isEditingProfile && (
-          <form onSubmit={handleSaveProfile} className="mt-5 pt-5 border-t border-dashed border-gray-100 space-y-3 animate-fade-in">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <form onSubmit={handleSaveProfile} className="mt-5 pt-5 border-t border-dashed border-gray-100 space-y-3.5 animate-fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-[10px] font-black text-text-secondary uppercase block mb-1">Full Name</label>
                 <input
@@ -276,6 +352,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                   required
                   value={profileEmail}
                   onChange={(e) => setProfileEmail(e.target.value)}
+                  className="w-full bg-canvas text-xs font-bold border border-border-custom p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-text-secondary uppercase block mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  required
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
                   className="w-full bg-canvas text-xs font-bold border border-border-custom p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent"
                 />
               </div>
@@ -773,28 +859,35 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </p>
 
           {ticketId ? (
-            <div className="p-4 bg-white rounded-xl text-center border border-border-custom">
-              <CheckCircle size={30} className="text-primary mx-auto mb-2" />
-              <h4 className="text-xs font-bold text-text-primary">Ticket Registered Successfully!</h4>
-              <p className="text-[10px] text-text-secondary leading-normal mt-1 mb-2">
+            <div className="p-4 bg-white rounded-xl text-center border border-[#1E6B3D]/30 shadow-sm animate-fade-in space-y-2">
+              <CheckCircle size={30} className="text-primary mx-auto" />
+              <h4 className="text-xs font-bold text-text-primary">Your request has been submitted successfully. Our team will contact you shortly.</h4>
+              <p className="text-[10px] text-text-secondary leading-normal">
                 Case ID is <span className="font-mono font-bold text-primary">{ticketId}</span>. The Bluber dispatcher on Court road is reviewing this case.
               </p>
               <button 
                 type="button"
                 onClick={() => setTicketId(null)}
-                className="text-[9.5px] text-primary font-black hover:underline border-none bg-transparent cursor-pointer"
+                className="text-[9.5px] text-primary font-black hover:underline border-none bg-transparent cursor-pointer mt-1"
               >
                 Log Another Ticket
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmitTicket} className="space-y-3">
+              {ticketError && (
+                <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-[10.5px] font-bold text-left leading-normal animate-fade-in">
+                  ⚠️ {ticketError}
+                </div>
+              )}
+
               <div>
                 <label className="text-[8.5px] font-black text-text-secondary uppercase mb-1 block">Issue Category</label>
                 <select 
                   value={supportCategory}
                   onChange={(e) => setSupportCategory(e.target.value)}
                   className="w-full bg-white text-xs px-3 py-2 border border-border-custom rounded-xl focus:outline-none focus:border-primary appearance-none cursor-pointer font-bold"
+                  disabled={ticketLoading}
                 >
                   <option value="Rides">Elite Scooty Bookings</option>
                   <option value="Food">Local Restaurant Delivery</option>
@@ -812,14 +905,23 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                   value={supportText}
                   onChange={(e) => setSupportText(e.target.value)}
                   className="w-full bg-white text-xs p-3 border border-border-custom rounded-xl focus:outline-none focus:border-primary resize-none placeholder:opacity-50"
+                  disabled={ticketLoading}
                 />
               </div>
 
               <button 
                 type="submit"
-                className="w-full py-2.5 bg-primary hover:bg-[#154627] text-white text-xs font-black rounded-xl shadow-md cursor-pointer active:scale-95 border-none"
+                disabled={ticketLoading}
+                className="w-full py-2.5 bg-primary hover:bg-[#154627] text-white text-xs font-black rounded-xl shadow-md cursor-pointer active:scale-95 border-none flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Case File
+                {ticketLoading ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Submitting to Support...</span>
+                  </>
+                ) : (
+                  <span>Submit Case File</span>
+                )}
               </button>
             </form>
           )}
@@ -941,17 +1043,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
 
           {/* Simulated Logout */}
-          <div className="pt-2 border-t border-gray-100">
-            {logoutSimulated ? (
-              <div className="p-3 bg-rose-50 text-rose-800 rounded-xl text-center text-[10px] font-bold">
-                ✓ Simulated Logout. Please refresh your browser tab to re-login!
-              </div>
-            ) : (
+          {user && (
+            <div className="pt-2 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm("Are you sure you want to log out from BLUBER? Your session data will remain saved locally.")) {
-                    setLogoutSimulated(true);
+                  if (confirm("Are you sure you want to log out from BLUBER? Your local cart and address book will be preserved.")) {
+                    if (onLogout) {
+                      onLogout();
+                    }
                   }
                 }}
                 className="w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-black rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all border-none cursor-pointer"
@@ -959,8 +1059,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 <LogOut size={14} />
                 <span>Sign Out from Account</span>
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

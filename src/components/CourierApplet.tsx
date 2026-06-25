@@ -17,6 +17,8 @@ interface CourierAppletProps {
   onAddOrder: (order: any) => void;
   onBack: () => void;
   onSwitchToOrders: () => void;
+  user?: any;
+  onRequireAuth?: (pendingAction?: any) => void;
 }
 
 const CHAMBA_LANDMARKS = [
@@ -42,7 +44,9 @@ export const CourierApplet: React.FC<CourierAppletProps> = ({
   onDeductWallet,
   onAddOrder,
   onBack,
-  onSwitchToOrders
+  onSwitchToOrders,
+  user,
+  onRequireAuth
 }) => {
   const [form, setForm] = useState<CourierState>({
     pickup: CHAMBA_LANDMARKS[0],
@@ -69,6 +73,10 @@ export const CourierApplet: React.FC<CourierAppletProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      onRequireAuth?.({ type: "CHECKOUT" });
+      return;
+    }
     if (!form.receiverName.trim() || !form.receiverPhone.trim()) {
       alert("Please fill out the recipient name and mobile number.");
       return;

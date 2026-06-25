@@ -6,14 +6,15 @@ import {
   Ticket, 
   CheckCircle, 
   ShieldCheck,
-  CreditCard,
   Trash,
-  Smartphone,
-  QrCode,
   Loader2,
-  Lock,
   ArrowLeft,
-  Coins
+  MapPin,
+  User,
+  Phone,
+  ArrowRight,
+  Coins,
+  AlertCircle
 } from "lucide-react";
 import { CartItem } from "../types";
 import { ImageComponent } from "./ImageComponent";
@@ -21,34 +22,64 @@ import { ImageComponent } from "./ImageComponent";
 interface CartTabProps {
   cart: CartItem[];
   walletBalance: number;
+  userProfile: { name: string; phone: string; email: string };
+  savedAddresses: Array<{ id: string; type: string; label: string; detail: string }>;
   onAddToCart: (item: any, shopId: string, shopName: string, type: "food" | "grocery" | "medicine") => void;
   onRemoveFromCart: (itemId: string) => void;
   onClearCart: () => void;
   onPlaceOrder: (order: any) => void;
   onDeductWallet: (amount: number) => boolean;
   onSwitchToOrders: () => void;
+  onTopUpWallet: (amount: number) => void;
+  user?: any;
+  onRequireAuth?: (pendingAction?: any) => void;
 }
 
 export const CartTab: React.FC<CartTabProps> = ({
   cart,
   walletBalance,
+  userProfile,
+  savedAddresses,
   onAddToCart,
   onRemoveFromCart,
   onClearCart,
   onPlaceOrder,
   onDeductWallet,
-  onSwitchToOrders
+  onSwitchToOrders,
+  onTopUpWallet,
+  user,
+  onRequireAuth
 }) => {
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
   
-  // Payment Flow States
-  const [checkoutStep, setCheckoutStep] = useState<"cart" | "payment" | "processing" | "success">("cart");
-  const [paymentOption, setPaymentOption] = useState<"UPI_APP" | "UPI_QR">("UPI_APP");
-  const [selectedUPIApp, setSelectedUPIApp] = useState<"GPay" | "PhonePe" | "Paytm" | "BHIM">("GPay");
-  const [pinInput, setPinInput] = useState("");
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  // Checkout flow step: "cart" | "delivery" | "summary" | "processing" | "success"
+  const [checkoutStep, setCheckoutStep] = useState<"cart" | "delivery" | "summary" | "processing" | "success">("cart");
   
+  // Recipient Delivery Details states
+  const [recipientName, setRecipientName] = useState(userProfile.name);
+  const [recipientPhone, setRecipientPhone] = useState(userProfile.phone);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(
+    savedAddresses.length > 0 ? savedAddresses[0].id : "custom"
+  );
+  const [customAddressDetail, setCustomAddressDetail] = useState("");
+  
+  // Quick top-up amount
+  const [quickTopUpAmount, setQuickTopUpAmount] = useState(500);
+  const [topUpSuccess, setTopUpSuccess] = useState(false);
+
+  // Sync details when userProfile changes
+  useEffect(() => {
+    setRecipientName(userProfile.name);
+    setRecipientPhone(userProfile.phone);
+  }, [userProfile]);
+
+  useEffect(() => {
+    if (savedAddresses.length > 0 && selectedAddressId === "custom" && !customAddressDetail) {
+      setSelectedAddressId(savedAddresses[0].id);
+    }
+  }, [savedAddresses]);
+
   const [lastOrderId, setLastOrderId] = useState("");
   const [txnDetails, setTxnDetails] = useState({ txnId: "", upiRef: "", amount: 0 });
 
@@ -57,24 +88,6 @@ export const CartTab: React.FC<CartTabProps> = ({
   // Delivery charges: Free over ₹300, else ₹30
   const deliveryFee = subtotal === 0 ? 0 : (subtotal >= 300 ? 0 : 30);
   const finalTotal = Math.max(0, subtotal + deliveryFee - discount);
-
-  // Timer for QR simulation
-  const [qrCountdown, setQrCountdown] = useState(300); // 5 min
-  useEffect(() => {
-    let interval: any = null;
-    if (checkoutStep === "payment" && paymentOption === "UPI_QR") {
-      interval = setInterval(() => {
-        setQrCountdown(prev => (prev > 0 ? prev - 1 : 300));
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [checkoutStep, paymentOption]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const applyPromo = () => {
     if (coupon.trim().toUpperCase() === "CHAMBA20") {
@@ -86,21 +99,54 @@ export const CartTab: React.FC<CartTabProps> = ({
     }
   };
 
-  const handleStartPayment = () => {
+  const handleStartCheckout = () => {
     if (cart.length === 0) return;
-    setCheckoutStep("payment");
-  };
-
-  const handlePINSubmit = () => {
-    if (pinInput.length < 4) {
-      alert("Please enter a valid 4 or 6-digit UPI PIN");
+    if (!user) {
+      onRequireAuth?.({ type: "CHECKOUT" });
       return;
     }
-    setIsPinModalOpen(false);
-    triggerPaymentFinalization();
+    setCheckoutStep("delivery");
+  };
+
+  const handleDeliverySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!recipientName.trim()) {
+      alert("Please enter recipient name");
+      return;
+    }
+    if (!recipientPhone.trim()) {
+      alert("Please enter recipient phone number");
+      return;
+    }
+    if (selectedAddressId === "custom" && !customAddressDetail.trim()) {
+      alert("Please enter custom delivery address details");
+      return;
+    }
+    setCheckoutStep("summary");
+  };
+
+  const getSelectedAddressText = () => {
+    if (selectedAddressId === "custom") {
+      return customAddressDetail;
+    }
+    const addr = savedAddresses.find(a => a.id === selectedAddressId);
+    return addr ? `${addr.label} (${addr.detail})` : "Custom Address";
+  };
+
+  const handleQuickTopUp = () => {
+    onTopUpWallet(quickTopUpAmount);
+    setTopUpSuccess(true);
+    setTimeout(() => setTopUpSuccess(false), 2500);
   };
 
   const triggerPaymentFinalization = () => {
+    // Attempt wallet deduction
+    const success = onDeductWallet(finalTotal);
+    if (!success) {
+      alert("Insufficient wallet balance. Please use the quick top-up below to add credits.");
+      return;
+    }
+
     setCheckoutStep("processing");
     
     const randomTxn = `TXN${Math.floor(10000000 + Math.random() * 90000000)}`;
@@ -112,14 +158,20 @@ export const CartTab: React.FC<CartTabProps> = ({
       amount: finalTotal
     });
 
-    // Simulate server side payment verification
+    // Simulate order generation and scheduling
     setTimeout(() => {
       const generatedId = `BLUB-${Math.floor(1000 + Math.random() * 9000)}`;
       const itemsSummary = cart.map(ci => `${ci.name} × ${ci.quantity}`).join(", ");
+      
+      // Map cart item type to correct order type
+      const firstItemType = cart[0]?.type || "grocery";
+      let orderType: "Food" | "Grocery" | "Medicine" = "Grocery";
+      if (firstItemType === "food") orderType = "Food";
+      if (firstItemType === "medicine") orderType = "Medicine";
 
       const newOrder = {
         id: generatedId,
-        type: "Grocery" as const,
+        type: orderType,
         merchantName: cart[0]?.storeOrRestaurantName || "Bluber Hyperlocal Hub",
         itemsSummary,
         total: finalTotal,
@@ -137,129 +189,402 @@ export const CartTab: React.FC<CartTabProps> = ({
       setLastOrderId(generatedId);
       setCheckoutStep("success");
       onClearCart();
-    }, 2500);
+    }, 2000);
   };
 
   return (
-    <div id="cart-tab-root" className="px-5 py-5 animate-fade-in pb-28">
-      {/* Header */}
-      {checkoutStep === "cart" && (
-        <div className="mb-5 text-left">
-          <h2 className="text-xl font-bold text-text-primary">My Persistent Cart</h2>
-          <p className="text-xs text-text-secondary">Review orders & secure checkout hub</p>
-        </div>
-      )}
-
-      {checkoutStep === "payment" && (
+    <div id="cart-tab-root" className="px-5 py-5 animate-fade-in pb-28 max-w-2xl mx-auto">
+      
+      {/* Back navigations for checkout steps */}
+      {checkoutStep !== "cart" && checkoutStep !== "processing" && checkoutStep !== "success" && (
         <div className="flex items-center gap-2 mb-5">
           <button 
-            onClick={() => setCheckoutStep("cart")}
-            className="p-1.5 bg-white border border-border-custom rounded-lg text-text-primary"
+            onClick={() => {
+              if (checkoutStep === "delivery") setCheckoutStep("cart");
+              if (checkoutStep === "summary") setCheckoutStep("delivery");
+            }}
+            className="p-1.5 bg-white border border-border-custom rounded-lg text-text-primary hover:bg-canvas transition-colors cursor-pointer"
           >
             <ArrowLeft size={16} />
           </button>
           <div className="text-left">
-            <h2 className="text-base font-black text-text-primary">UPI Payments Gateway</h2>
-            <p className="text-[10px] text-text-secondary uppercase font-bold tracking-widest text-primary flex items-center gap-1">
-              <Lock size={10} className="text-primary" /> Prepaid-First Security Enabled
+            <h2 className="text-base font-black text-text-primary">
+              {checkoutStep === "delivery" ? "Delivery Details" : "Order Summary"}
+            </h2>
+            <p className="text-[10px] text-primary uppercase font-bold tracking-widest">
+              {checkoutStep === "delivery" ? "Step 2 of 3 • Recipient & Hub" : "Step 3 of 3 • Check & Pay"}
             </p>
           </div>
         </div>
       )}
 
+      {/* STEP 1: CART VIEW */}
       {checkoutStep === "cart" && (
-        cart.length === 0 ? (
-          <div className="text-center py-14 bg-white rounded-[32px] border border-dashed border-border-custom/60 space-y-4">
-            <div className="text-5xl text-primary/45 opacity-60">🛒</div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-bold text-text-primary">Your Cart is Empty</h3>
-              <p className="text-[11px] text-text-secondary leading-normal max-w-[220px] mx-auto">
-                Add direct groceries, delicious meals, or general medical items from Chamba stores!
-              </p>
+        <>
+          <div className="mb-5 text-left">
+            <h2 className="text-xl font-bold text-text-primary">My Persistent Cart</h2>
+            <p className="text-xs text-text-secondary">Review orders & secure checkout hub</p>
+          </div>
+
+          {cart.length === 0 ? (
+            <div className="text-center py-14 bg-white rounded-[32px] border border-dashed border-border-custom/60 space-y-4">
+              <div className="text-5xl text-primary/45 opacity-60">🛒</div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-text-primary">Your Cart is Empty</h3>
+                <p className="text-[11px] text-text-secondary leading-normal max-w-[220px] mx-auto">
+                  Add direct groceries, delicious meals, or general medical items from Chamba stores!
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {/* Cart Item Cards list */}
+              <div className="bg-white rounded-[28px] p-4 shadow-sm border border-border-custom/40 space-y-3.5">
+                <div className="flex justify-between items-center pb-2.5 border-b border-border-custom/30 text-xs">
+                  <span className="font-bold text-text-primary">Summary list ({cart.length} items)</span>
+                  <button 
+                    onClick={onClearCart}
+                    className="text-[10px] font-bold text-rose-500 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash size={12} /> Clear Cart
+                  </button>
+                </div>
+
+                <div className="divide-y divide-border-custom/30 space-y-3 text-left">
+                  {cart.map((item, idx) => (
+                    <div key={item.id} className={`flex items-center justify-between pt-3 ${idx === 0 ? "pt-0 border-none px-0" : ""}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-border-custom/30 flex items-center justify-center bg-canvas">
+                          <ImageComponent 
+                            src={item.image} 
+                            alt={item.name} 
+                            fallbackName={item.name}
+                            fallbackType="product"
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="text-left">
+                          <h4 className="text-xs font-bold text-text-primary max-w-[160px] truncate leading-tight">{item.name}</h4>
+                          <p className="text-[10px] text-text-secondary mt-0.5">₹{item.price} • {item.storeOrRestaurantName}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-text-primary">₹{item.price * item.quantity}</span>
+                        <div className="flex items-center border border-border-custom/65 bg-canvas rounded-xl py-0.5 px-1 bg-white">
+                          <button 
+                            onClick={() => onRemoveFromCart(item.id)}
+                            className="px-2 py-1 text-text-secondary hover:text-rose-500 cursor-pointer"
+                          >
+                            <Minus size={10} />
+                          </button>
+                          <span className="text-[11px] font-black text-text-primary w-5 text-center">{item.quantity}</span>
+                          <button 
+                            onClick={() => onAddToCart(item, item.storeOrRestaurantId, item.storeOrRestaurantName, item.type)}
+                            className="px-2 py-1 text-text-secondary hover:text-primary cursor-pointer"
+                          >
+                            <Plus size={10} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Coupons */}
+              <div className="bg-white rounded-[24px] p-4 shadow-sm border border-border-custom/35 space-y-3">
+                <label className="text-[10px] font-extrabold text-text-secondary uppercase tracking-wider block text-left">Apply Valley Promocode</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Enter (e.g. CHAMBA20)..." 
+                    value={coupon}
+                    onChange={(e) => setCoupon(e.target.value)}
+                    className="flex-1 bg-canvas border border-border-custom text-xs px-3.5 py-3 rounded-xl focus:outline-none uppercase font-bold placeholder:normal-case placeholder:font-light"
+                  />
+                  <button 
+                    onClick={applyPromo}
+                    className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-4 rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                </div>
+                <p className="text-[9px] text-[#22C55E] font-medium leading-normal text-left">
+                  💡 Hint: Enter <strong>CHAMBA20</strong> to get 20% flat discount on subtotal!
+                </p>
+              </div>
+
+              {/* Pricing table summary */}
+              <div className="bg-white rounded-[28px] p-4.5 border border-border-custom/40 shadow-xs space-y-2.5 text-xs">
+                <div className="flex justify-between text-text-secondary">
+                  <span>Items Subtotal</span>
+                  <span className="font-bold text-text-primary">₹{subtotal}</span>
+                </div>
+                <div className="flex justify-between text-text-secondary">
+                  <span>Hyperlocal Delivery Fee</span>
+                  {deliveryFee === 0 ? (
+                    <span className="text-[#22C55E] font-bold uppercase text-[10px]">Free Delivery</span>
+                  ) : (
+                    <span className="font-bold text-text-primary">₹{deliveryFee}</span>
+                  )}
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-bold">
+                    <span>Voucher Savings</span>
+                    <span>- ₹{discount}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between items-center pt-3 border-t border-border-custom/40">
+                  <span className="text-xs font-black text-text-primary uppercase tracking-wide">Total price</span>
+                  <span className="text-lg font-black text-primary">₹{finalTotal}</span>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleStartCheckout}
+                className="w-full bg-primary hover:bg-primary/95 text-white font-black text-xs py-4 rounded-2xl shadow-md transition-all active:scale-[0.98] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>Proceed to Delivery Details</span>
+                <ArrowRight size={14} />
+              </button>
+
+              <div className="flex items-center justify-center gap-1.5 opacity-60 text-[9.5px] text-text-secondary">
+                <ShieldCheck size={14} className="text-[#22C55E] shrink-0" />
+                <span>100% Secure Guest Checkout System</span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* STEP 2: DELIVERY DETAILS VIEW */}
+      {checkoutStep === "delivery" && (
+        <form onSubmit={handleDeliverySubmit} className="space-y-5 text-left">
+          <div className="bg-white rounded-[28px] p-5 shadow-sm border border-border-custom/40 space-y-4">
+            <h3 className="text-sm font-extrabold text-text-primary uppercase tracking-wider flex items-center gap-2 border-b pb-2.5 border-border-custom/35">
+              <User size={16} className="text-primary" />
+              Recipient Information
+            </h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-black text-text-secondary uppercase block mb-1">Name</label>
+                <input
+                  type="text"
+                  required
+                  value={recipientName}
+                  onChange={(e) => setRecipientName(e.target.value)}
+                  placeholder="Enter recipient name..."
+                  className="w-full bg-canvas text-xs font-bold border border-border-custom p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-text-secondary uppercase block mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  required
+                  value={recipientPhone}
+                  onChange={(e) => setRecipientPhone(e.target.value)}
+                  placeholder="Enter contact number..."
+                  className="w-full bg-canvas text-xs font-bold border border-border-custom p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent"
+                />
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="space-y-5">
-            {/* Cart Item Cards list */}
-            <div className="bg-white rounded-[28px] p-4 shadow-sm border border-border-custom/40 space-y-3.5">
-              <div className="flex justify-between items-center pb-2.5 border-b border-border-custom/30 text-xs">
-                <span className="font-bold text-text-primary">Summary list ({cart.length} items)</span>
-                <button 
-                  onClick={onClearCart}
-                  className="text-[10px] font-bold text-rose-500 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Trash size={12} /> Clear Cart
-                </button>
-              </div>
 
-              <div className="divide-y divide-border-custom/30 space-y-3">
-                {cart.map((item, idx) => (
-                  <div key={item.id} className={`flex items-center justify-between pt-3 ${idx === 0 ? "pt-0 border-none px-0" : ""}`}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-border-custom/30 flex items-center justify-center bg-canvas">
-                        <ImageComponent 
-                          src={item.image} 
-                          alt={item.name} 
-                          fallbackName={item.name}
-                          fallbackType="product"
-                          className="w-full h-full object-cover" 
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                      <div className="text-left">
-                        <h4 className="text-xs font-bold text-text-primary max-w-[160px] truncate leading-tight">{item.name}</h4>
-                        <p className="text-[10px] text-text-secondary mt-0.5">₹{item.price} • {item.storeOrRestaurantName}</p>
-                      </div>
-                    </div>
+          <div className="bg-white rounded-[28px] p-5 shadow-sm border border-border-custom/40 space-y-4">
+            <h3 className="text-sm font-extrabold text-text-primary uppercase tracking-wider flex items-center gap-2 border-b pb-2.5 border-border-custom/35">
+              <MapPin size={16} className="text-primary" />
+              Select Delivery Address
+            </h3>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-text-primary">₹{item.price * item.quantity}</span>
-                      <div className="flex items-center border border-border-custom/65 bg-canvas rounded-xl py-0.5 px-1 bg-white">
-                        <button 
-                          onClick={() => onRemoveFromCart(item.id)}
-                          className="px-2 py-1 text-text-secondary hover:text-rose-500 cursor-pointer"
-                        >
-                          <Minus size={10} />
-                        </button>
-                        <span className="text-[11px] font-black text-text-primary w-5 text-center">{item.quantity}</span>
-                        <button 
-                          onClick={() => onAddToCart(item, item.storeOrRestaurantId, item.storeOrRestaurantName, item.type)}
-                          className="px-2 py-1 text-text-secondary hover:text-primary cursor-pointer"
-                        >
-                          <Plus size={10} />
-                        </button>
-                      </div>
+            {/* Saved Addresses list */}
+            {savedAddresses.length > 0 && (
+              <div className="space-y-2">
+                {savedAddresses.map((addr) => (
+                  <label 
+                    key={addr.id}
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      selectedAddressId === addr.id 
+                        ? "border-primary bg-primary-light/10" 
+                        : "border-border-custom hover:bg-canvas"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="delivery-address"
+                      checked={selectedAddressId === addr.id}
+                      onChange={() => setSelectedAddressId(addr.id)}
+                      className="mt-0.5 text-primary focus:ring-primary"
+                    />
+                    <div>
+                      <p className="text-xs font-black text-text-primary">{addr.label}</p>
+                      <p className="text-[10.5px] text-text-secondary mt-0.5 leading-relaxed">{addr.detail}</p>
                     </div>
-                  </div>
+                  </label>
                 ))}
               </div>
+            )}
+
+            {/* Custom/New Address choice */}
+            <label 
+              className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                selectedAddressId === "custom" 
+                  ? "border-primary bg-primary-light/10" 
+                  : "border-border-custom hover:bg-canvas"
+              }`}
+            >
+              <input
+                type="radio"
+                name="delivery-address"
+                checked={selectedAddressId === "custom"}
+                onChange={() => setSelectedAddressId("custom")}
+                className="mt-0.5 text-primary focus:ring-primary"
+              />
+              <div className="flex-1">
+                <p className="text-xs font-black text-text-primary">Deliver to different address</p>
+                <p className="text-[10.5px] text-text-secondary mt-0.5">Specify a custom dropoff location below</p>
+                
+                {selectedAddressId === "custom" && (
+                  <textarea
+                    required={selectedAddressId === "custom"}
+                    value={customAddressDetail}
+                    onChange={(e) => setCustomAddressDetail(e.target.value)}
+                    placeholder="Enter complete delivery address details, landmark, and street..."
+                    rows={3}
+                    className="w-full mt-3 bg-white text-xs font-bold border border-border-custom p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent leading-relaxed"
+                  />
+                )}
+              </div>
+            </label>
+          </div>
+
+          <button 
+            type="submit"
+            className="w-full bg-primary hover:bg-primary/95 text-white font-black text-xs py-4 rounded-2xl shadow-md transition-all active:scale-[0.98] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span>Proceed to Order Summary</span>
+            <ArrowRight size={14} />
+          </button>
+        </form>
+      )}
+
+      {/* STEP 3: ORDER SUMMARY & WALLET PAYMENT */}
+      {checkoutStep === "summary" && (
+        <div className="space-y-5 text-left">
+          {/* Recipient / Address Summary Card */}
+          <div className="bg-white rounded-[28px] p-5 shadow-sm border border-border-custom/40 space-y-4">
+            <h3 className="text-xs font-extrabold text-text-secondary uppercase tracking-widest border-b pb-2 border-border-custom/30">
+              Delivery Information
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs">
+                <User size={14} className="text-text-secondary" />
+                <span className="font-bold text-text-primary">{recipientName}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <Phone size={14} className="text-text-secondary" />
+                <span className="font-medium text-text-primary">{recipientPhone}</span>
+              </div>
+              <div className="flex items-start gap-2 text-xs">
+                <MapPin size={14} className="text-text-secondary mt-0.5 shrink-0" />
+                <span className="font-medium text-text-primary leading-relaxed">{getSelectedAddressText()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cart Item Summary Card */}
+          <div className="bg-white rounded-[28px] p-5 shadow-sm border border-border-custom/40 space-y-3.5">
+            <h3 className="text-xs font-extrabold text-text-secondary uppercase tracking-widest border-b pb-2 border-border-custom/30">
+              Selected Items
+            </h3>
+            <div className="divide-y divide-border-custom/25 space-y-2.5">
+              {cart.map((item, idx) => (
+                <div key={item.id} className={`flex justify-between items-center text-xs pt-2.5 ${idx === 0 ? "pt-0 border-none" : ""}`}>
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-bold text-primary bg-primary-light/40 px-2 py-0.5 rounded-md text-[10.5px]">
+                      {item.quantity}x
+                    </span>
+                    <span className="font-bold text-text-primary truncate max-w-[200px]">{item.name}</span>
+                  </div>
+                  <span className="font-black text-text-primary">₹{item.price * item.quantity}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Wallet Balance Widget & Auto recharge */}
+          <div className="bg-white rounded-[28px] p-5 shadow-sm border border-border-custom/40 space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-xs font-extrabold text-text-secondary uppercase tracking-widest">
+                  Bluber Guest Wallet
+                </h3>
+                <p className="text-xl font-black text-text-primary flex items-center gap-1.5 mt-1">
+                  <Coins size={20} className="text-amber-500" />
+                  ₹{walletBalance.toLocaleString()}
+                </p>
+              </div>
+              
+              {walletBalance >= finalTotal ? (
+                <span className="bg-emerald-50 text-emerald-800 text-[10px] font-black px-2.5 py-1.5 rounded-xl uppercase flex items-center gap-1">
+                  ✓ Balance Sufficient
+                </span>
+              ) : (
+                <span className="bg-rose-50 text-rose-800 text-[10px] font-black px-2.5 py-1.5 rounded-xl uppercase flex items-center gap-1">
+                  <AlertCircle size={12} /> Insufficient
+                </span>
+              )}
             </div>
 
-            {/* Coupons */}
-            <div className="bg-white rounded-[24px] p-4 shadow-sm border border-border-custom/35 space-y-3">
-              <label className="text-[10px] font-extrabold text-text-secondary uppercase tracking-wider block text-left">Apply Valley Promocode</label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Enter (e.g. CHAMBA20)..." 
-                  value={coupon}
-                  onChange={(e) => setCoupon(e.target.value)}
-                  className="flex-1 bg-canvas border border-border-custom text-xs px-3.5 py-3 rounded-xl focus:outline-none uppercase font-bold placeholder:normal-case placeholder:font-light"
-                />
-                <button 
-                  onClick={applyPromo}
-                  className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-4 rounded-xl shadow-xs transition-colors cursor-pointer"
+            {/* QUICK TOP UP FORM IF INSUFFICIENT OR PREFERRED */}
+            {walletBalance < finalTotal && (
+              <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-200/50 space-y-3 animate-fade-in">
+                <div className="flex gap-2 items-center">
+                  <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                  <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
+                    You need <strong>₹{finalTotal - walletBalance}</strong> more to complete this order. Use the quick-topup node below!
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {[100, 200, 500, 1000].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setQuickTopUpAmount(amt)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                        quickTopUpAmount === amt 
+                          ? "bg-amber-500 border-amber-500 text-white" 
+                          : "bg-white border-border-custom text-text-primary hover:bg-canvas"
+                      }`}
+                    >
+                      + ₹{amt}
+                    </button>
+                  ))}
+                </div>
+
+                {topUpSuccess && (
+                  <p className="text-[10px] text-emerald-600 font-black">✓ Guest Wallet charged up successfully!</p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleQuickTopUp}
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all active:scale-[0.98] cursor-pointer"
                 >
-                  Apply
+                  Charge up +₹{quickTopUpAmount} instantly
                 </button>
               </div>
-              <p className="text-[9px] text-[#22C55E] font-medium leading-normal text-left">
-                💡 Hint: Enter <strong>CHAMBA20</strong> to get 20% flat discount on subtotal!
-              </p>
-            </div>
+            )}
+          </div>
 
-            {/* Pricing table summary */}
-            <div className="bg-white rounded-[28px] p-4.5 border border-border-custom/40 shadow-xs space-y-2.5 text-xs">
+          {/* Bill summary and place order */}
+          <div className="bg-white rounded-[28px] p-5 border border-border-custom/40 shadow-xs space-y-4">
+            <div className="space-y-2 text-xs">
               <div className="flex justify-between text-text-secondary">
                 <span>Items Subtotal</span>
                 <span className="font-bold text-text-primary">₹{subtotal}</span>
@@ -286,151 +611,28 @@ export const CartTab: React.FC<CartTabProps> = ({
             </div>
 
             <button 
-              onClick={handleStartPayment}
-              className="w-full bg-primary hover:bg-primary/95 text-white font-black text-xs py-4 rounded-2xl shadow-md transition-all active:scale-[0.98] uppercase tracking-wider cursor-pointer"
+              onClick={triggerPaymentFinalization}
+              disabled={walletBalance < finalTotal}
+              className={`w-full py-4 text-white text-xs font-black rounded-2xl tracking-wider active:scale-95 shadow-md flex items-center justify-center gap-1.5 cursor-pointer uppercase ${
+                walletBalance >= finalTotal 
+                  ? "bg-primary hover:bg-primary/95" 
+                  : "bg-neutral-300 cursor-not-allowed shadow-none"
+              }`}
             >
-              Confirm & Pay Securely (₹{finalTotal})
+              <span>Place Order (Pay ₹{finalTotal} via Wallet)</span>
+              <CheckCircle size={14} />
             </button>
-
-            <div className="flex items-center justify-center gap-1.5 opacity-60 text-[9.5px] text-text-secondary">
-              <ShieldCheck size={14} className="text-[#22C55E] shrink-0" />
-              <span>100% Secure Prepaid Payment Node System</span>
-            </div>
-          </div>
-        )
-      )}
-
-      {/* STEP 2: PREPAID UPI PAYMENT CHOICES (COD REMOVED) */}
-      {checkoutStep === "payment" && (
-        <div className="space-y-5">
-          {/* Bill summary check */}
-          <div className="bg-white rounded-[20px] p-4 border border-border-custom/40 shadow-sm flex justify-between items-center text-xs">
-            <div className="text-left">
-              <p className="text-[10px] font-bold text-text-secondary uppercase">Bill Total Due</p>
-              <p className="text-lg font-black text-text-primary">₹{finalTotal}</p>
-            </div>
-            <div className="text-right bg-[#EDF7EF] text-[#1E6B3D] px-2.5 py-1.5 rounded-xl font-bold text-[10px]">
-              Prepaid Order Only
-            </div>
-          </div>
-
-          <div className="bg-white rounded-[28px] p-4 shadow-sm border border-border-custom/45 space-y-4">
-            <p className="text-xs font-black text-text-primary uppercase tracking-wide text-left">Choose Instant UPI Method</p>
-            
-            {/* Tabs for UPI Selection */}
-            <div className="grid grid-cols-2 gap-2 bg-canvas p-1 rounded-xl">
-              <button
-                onClick={() => setPaymentOption("UPI_APP")}
-                className={`py-2 px-3 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  paymentOption === "UPI_APP" ? "bg-white text-primary shadow-xs" : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                <Smartphone size={14} /> Mobile App UPI
-              </button>
-              <button
-                onClick={() => setPaymentOption("UPI_QR")}
-                className={`py-2 px-3 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  paymentOption === "UPI_QR" ? "bg-white text-primary shadow-xs" : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                <QrCode size={14} /> Scan UPI QR
-              </button>
-            </div>
-
-            {/* UPI INTENT CONTAINER */}
-            {paymentOption === "UPI_APP" && (
-              <div className="space-y-3 pt-2">
-                <p className="text-[10px] text-text-secondary font-bold uppercase tracking-wider text-left">Select Instant App Intent</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "GPay", name: "Google Pay", logo: "🟢" },
-                    { id: "PhonePe", name: "PhonePe", logo: "🟣" },
-                    { id: "Paytm", name: "Paytm", logo: "🔵" },
-                    { id: "BHIM", name: "BHIM UPI", logo: "🇮🇳" }
-                  ].map(app => (
-                    <button
-                      key={app.id}
-                      onClick={() => setSelectedUPIApp(app.id as any)}
-                      className={`p-3.5 rounded-xl border flex items-center gap-2.5 transition-all text-left cursor-pointer ${
-                        selectedUPIApp === app.id ? "border-primary bg-primary-light/35 font-bold" : "border-border-custom hover:bg-canvas"
-                      }`}
-                    >
-                      <span className="text-base leading-none">{app.logo}</span>
-                      <span className="text-xs text-text-primary">{app.name}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="bg-canvas p-3 rounded-xl border border-border-custom/40 text-[10.5px] text-text-secondary leading-relaxed text-left space-y-1">
-                  <p>✔ Launches <strong>{selectedUPIApp}</strong> secure viewport instantly</p>
-                  <p>✔ Auto-returns upon secure PIN verification</p>
-                </div>
-
-                <button
-                  onClick={() => setIsPinModalOpen(true)}
-                  className="w-full bg-primary hover:bg-primary/95 text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md mt-4 cursor-pointer"
-                >
-                  Pay ₹{finalTotal} via {selectedUPIApp} ➔
-                </button>
-              </div>
-            )}
-
-            {/* UPI QR CONTAINER */}
-            {paymentOption === "UPI_QR" && (
-              <div className="space-y-4 pt-2 text-center flex flex-col items-center">
-                <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wider">Dynamic QR Code Terminal</p>
-                
-                {/* SVG QR Code Mockup */}
-                <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-md relative group">
-                  <svg width="150" height="150" viewBox="0 0 100 100" className="opacity-95 text-text-primary">
-                    <rect width="100" height="100" fill="white" />
-                    {/* Corners */}
-                    <path d="M5 5 H25 V15 H15 V25 H5 Z" fill="currentColor" />
-                    <path d="M75 5 H95 V25 H85 V15 H75 Z" fill="currentColor" />
-                    <path d="M5 75 H15 V85 H25 V95 H5 Z" fill="currentColor" />
-                    {/* Interior Patterns */}
-                    <rect x="5" y="5" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" />
-                    <rect x="75" y="5" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" />
-                    <rect x="5" y="75" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" />
-                    {/* Dots center representation */}
-                    <path d="M35 15 H45 V25 M55 15 H65 V35 M40 40 H50 M30 50 H60 V55 M15 35 H25 V45 M80 35 H85 V60 M75 75 H95 V85" stroke="currentColor" strokeWidth="3" strokeLinecap="square" fill="none" />
-                    <circle cx="50" cy="50" r="10" fill="none" stroke="#22C55E" strokeWidth="2" />
-                    {/* Small inner UPI typography marker */}
-                    <text x="50" y="53" fontSize="8" fontWeight="black" fill="#1E6B3D" textAnchor="middle">UPI</text>
-                  </svg>
-                  
-                  {/* Pinging green scanner dot */}
-                  <div className="absolute top-3 left-3 w-2 h-2 rounded-full bg-emerald-500 animate-ping"></div>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-[11px] font-bold text-text-primary">Scan using GPay, PhonePe, Paytm or BHIM</p>
-                  <p className="text-[10px] text-text-secondary">Amount match: <strong>₹{finalTotal}</strong> • Code expires in <span className="text-rose-500 font-mono font-bold">{formatTime(qrCountdown)}</span></p>
-                </div>
-
-                <div className="bg-[#EDF7EF] p-3 rounded-xl border border-emerald-500/10 text-[10px] text-[#1E6B3D] leading-normal font-medium max-w-[280px] text-center">
-                  💡 Dynamic scanning updates settlement automatically. Click below to mock successful QR match.
-                </div>
-
-                <button
-                  onClick={triggerPaymentFinalization}
-                  className="w-full bg-[#1E6B3D] hover:bg-emerald-800 text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md cursor-pointer"
-                >
-                  Simulate QR Payment Success ✓
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* STEP 3: TRANSACTION SERVERSIDE VERIFICATION LOADER */}
+      {/* STEP 4: PROCESSING VIEWER */}
       {checkoutStep === "processing" && (
         <div className="bg-white rounded-[32px] p-8 text-center border border-border-custom shadow-md space-y-6 animate-fade-in py-16">
           <div className="flex flex-col items-center justify-center">
             <Loader2 size={44} className="text-primary animate-spin shrink-0" />
-            <h3 className="text-base font-black text-text-primary mt-4">Verifying Secure Payment...</h3>
-            <p className="text-[11px] text-text-secondary uppercase font-bold tracking-widest text-primary mt-1">Prepaid Authentication Node</p>
+            <h3 className="text-base font-black text-text-primary mt-4">Transmitting Order to Hub...</h3>
+            <p className="text-[11px] text-text-secondary uppercase font-bold tracking-widest text-primary mt-1">Prepaid Guest Node Passthrough</p>
           </div>
 
           <div className="bg-canvas border border-border-custom p-4 rounded-2xl max-w-xs mx-auto text-left space-y-2 text-[11px] font-mono text-text-secondary">
@@ -448,28 +650,28 @@ export const CartTab: React.FC<CartTabProps> = ({
             </div>
             <div className="flex justify-between">
               <span>Gateway Node:</span>
-              <span className="font-bold text-[#1E6B3D]">SERVERSIDE_PASSTHRU</span>
+              <span className="font-bold text-[#1E6B3D]">GUEST_WALLET_PASSTHRU</span>
             </div>
           </div>
           
           <p className="text-[11px] text-text-secondary leading-normal max-w-[240px] mx-auto">
-            Please do not hit back or close the browser tab. Securing dynamic checkout receipt settlement...
+            Securing guest checkout receipt and planning optimal driver matching...
           </p>
         </div>
       )}
 
-      {/* STEP 4: PAYMENT SUCCESS / ORDER TRANSMITTED SCREEN */}
+      {/* STEP 5: SUCCESS VIEWER */}
       {checkoutStep === "success" && (
         <div className="bg-white rounded-3xl p-6 text-center border border-emerald-100 shadow-custom animate-fade-in space-y-5">
           <div className="w-14 h-14 bg-[#EDF7EF] text-[#1E6B3D] rounded-full flex items-center justify-center mx-auto scale-110 border border-emerald-500/20">
             <CheckCircle size={36} />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-black text-[#1E6B3D]">Prepaid Payment Authenticated!</h3>
-            <p className="text-xs text-text-primary font-bold">Order Confirmed Successfully</p>
+            <h3 className="text-base font-black text-[#1E6B3D]">Order Placed Successfully!</h3>
+            <p className="text-xs text-text-primary font-bold">Driver Sourcing Triggered</p>
           </div>
           <p className="text-xs text-text-secondary leading-relaxed">
-            Payment has been securely captured. Receipt ID: <span className="font-mono font-bold text-text-primary">{txnDetails.txnId}</span>.<br />
+            Guest wallet payment captured. Receipt ID: <span className="font-mono font-bold text-text-primary">{txnDetails.txnId}</span>.<br />
             Our owner logistics captains have received your order <strong>{lastOrderId}</strong>! A rider is being assigned.
           </p>
 
@@ -481,62 +683,8 @@ export const CartTab: React.FC<CartTabProps> = ({
           </button>
         </div>
       )}
-
-      {/* UPI PIN INTERACTIVE SECURE POPUP */}
-      {isPinModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-5 pointer-events-auto">
-          <div className="bg-surface rounded-3xl p-5 text-center max-w-xs w-full shadow-2xl animate-[zoomIn_150ms_ease-out]">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-border-custom">
-              <span className="text-xs font-bold text-text-secondary flex items-center gap-1">
-                <Lock size={12} fill="currentColor" /> ENTER UPI PIN
-              </span>
-              <span className="text-[10px] font-black text-text-primary">Amount: ₹{finalTotal}</span>
-            </div>
-            
-            <p className="text-[11px] text-text-secondary text-left mb-2.5">Enter 4-digit UPI PIN for your bank account:</p>
-            
-            <input 
-              type="password"
-              maxLength={4}
-              placeholder="• • • •"
-              value={pinInput}
-              readOnly
-              className="w-full bg-canvas text-center text-xl font-bold font-mono tracking-widest py-3.5 rounded-xl focus:outline-none border border-border-custom"
-            />
-
-            {/* Simulated Grid Keypad */}
-            <div className="grid grid-cols-3 gap-2 mt-4 text-xs font-extrabold text-[#475569]">
-              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map(num => (
-                <button
-                  key={num}
-                  onClick={() => pinInput.length < 4 && setPinInput(prev => prev + num)}
-                  className="py-2.5 bg-canvas hover:bg-border-custom rounded-lg border border-border-custom/50 active:scale-95 text-text-primary cursor-pointer"
-                >
-                  {num}
-                </button>
-              ))}
-              <button
-                onClick={() => setPinInput("")}
-                className="py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg font-bold border border-rose-100 cursor-pointer"
-              >
-                Clear
-              </button>
-              <button
-                onClick={() => pinInput.length < 4 && setPinInput(prev => prev + "0")}
-                className="py-2.5 bg-canvas hover:bg-border-custom rounded-lg border border-border-custom/50 cursor-pointer"
-              >
-                0
-              </button>
-              <button
-                onClick={handlePINSubmit}
-                className="py-2.5 bg-primary text-white hover:bg-primary/95 rounded-lg font-bold shadow-xs cursor-pointer"
-              >
-                ✓ OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+export default CartTab;

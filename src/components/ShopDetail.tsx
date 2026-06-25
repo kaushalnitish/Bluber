@@ -30,6 +30,8 @@ interface ShopDetailProps {
   onPlaceOrder: (order: any) => void;
   onBack: () => void;
   onSwitchToOrders: () => void;
+  user?: any;
+  onRequireAuth?: (pendingAction?: any) => void;
 }
 
 export const ShopDetail: React.FC<ShopDetailProps> = ({
@@ -43,7 +45,9 @@ export const ShopDetail: React.FC<ShopDetailProps> = ({
   onDeductWallet,
   onPlaceOrder,
   onBack,
-  onSwitchToOrders
+  onSwitchToOrders,
+  user,
+  onRequireAuth
 }) => {
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"Wallet">("Wallet");
@@ -78,6 +82,10 @@ export const ShopDetail: React.FC<ShopDetailProps> = ({
   const [scannedTxn, setScannedTxn] = useState("");
 
   const handleCheckoutSubmit = () => {
+    if (!user) {
+      onRequireAuth?.({ type: "CHECKOUT" });
+      return;
+    }
     if (walletBalance >= cartTotal) {
       // Wallet is healthy, deduct and checkout instantly
       onDeductWallet(cartTotal);

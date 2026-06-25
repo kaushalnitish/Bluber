@@ -61,6 +61,38 @@ export const ExploreTab: React.FC<ExploreTabProps> = ({
   onSetActiveTab
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try {
+      const saved = safeStorage.getItem("bluber_recent_searches");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Sync to local storage
+  useEffect(() => {
+    safeStorage.setItem("bluber_recent_searches", JSON.stringify(recentSearches));
+  }, [recentSearches]);
+
+  const addRecentSearch = (term: string) => {
+    if (!term.trim()) return;
+    const cleanTerm = term.trim();
+    setRecentSearches(prev => {
+      const filtered = prev.filter(t => t.toLowerCase() !== cleanTerm.toLowerCase());
+      return [cleanTerm, ...filtered].slice(0, 5); // Keep last 5 entries
+    });
+  };
+
+  useEffect(() => {
+    if (searchQuery.trim().length >= 3) {
+      const timer = setTimeout(() => {
+        addRecentSearch(searchQuery);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery]);
+
   const [surveyVote, setSurveyVote] = useState<"Yes" | "No" | null>(() => {
     try {
       const saved = safeStorage.getItem("bluber_ride_demand_vote");
@@ -165,6 +197,7 @@ export const ExploreTab: React.FC<ExploreTabProps> = ({
   // Helper to click popular search item
   const handlePopularSearchClick = (term: string) => {
     setSearchQuery(term);
+    addRecentSearch(term);
   };
 
   // Check how many items in cart
@@ -352,6 +385,38 @@ export const ExploreTab: React.FC<ExploreTabProps> = ({
           ))}
         </div>
       </section>
+
+      {/* SECTION 4.5: RECENT SEARCHES */}
+      {recentSearches.length > 0 && (
+        <section id="explore-recent-searches-section" className="text-left space-y-2.5">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xs font-extrabold text-text-secondary uppercase tracking-widest">Recent Searches</h3>
+            <button 
+              type="button"
+              onClick={() => setRecentSearches([])}
+              className="text-[9.5px] font-bold text-rose-500 hover:underline border-none bg-transparent cursor-pointer"
+            >
+              Clear History
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2 text-left animate-fade-in">
+            {recentSearches.map((term, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => setSearchQuery(term)}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                  searchQuery.toLowerCase() === term.toLowerCase()
+                    ? "bg-primary border-primary text-white"
+                    : "bg-[#EDF7EF]/50 hover:bg-[#EDF7EF] border-primary/10 text-primary"
+                }`}
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* SECTION 5: POPULAR SEARCHES */}
       <section id="explore-searches-section" className="text-left">

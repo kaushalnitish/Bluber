@@ -65,6 +65,8 @@ import { ProfileTab } from "./components/ProfileTab";
 import { ImageComponent } from "./components/ImageComponent";
 import { OrdersTab } from "./components/OrdersTab";
 import { getPricingTier, PRICING_TIERS } from "./utils/pricing";
+import { AuthModal } from "./components/AuthModal";
+import { auth, onAuthStateChanged, signOut } from "./utils/firebase";
 import {
   ScooterIllustration,
   DeliveryIllustration,
@@ -107,6 +109,109 @@ export default function App() {
   const [walletBalance, setWalletBalance] = useState<number>(() => {
     const saved = safeStorage.getItem("bluber_wallet");
     return saved ? Number(saved) : 1250;
+  });
+
+  const [user, setUser] = useState<{ uid: string; name: string; email: string; phone: string; photoURL?: string } | null>(() => {
+    const saved = safeStorage.getItem("bluber_auth_user");
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ type: string; data?: any } | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const u = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.phoneNumber || "Verified User",
+          email: firebaseUser.email || "",
+          phone: firebaseUser.phoneNumber || "",
+          photoURL: firebaseUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${firebaseUser.uid}`
+        };
+        setUser(u);
+        safeStorage.setItem("bluber_auth_user", JSON.stringify(u));
+        setUserProfile({
+          name: u.name,
+          phone: u.phone,
+          email: u.email
+        });
+      } else {
+        setUser(null);
+        safeStorage.removeItem("bluber_auth_user");
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      safeStorage.removeItem("bluber_auth_user");
+      setUserProfile({ name: "", phone: "", email: "" });
+    } catch (err) {
+      console.error("Logout error", err);
+    }
+  };
+
+  const handleOpenEliteWaitlist = () => {
+    if (!user) {
+      setPendingAction({ type: "JOIN_WAITLIST" });
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setIsEliteWaitlistOpen(true);
+  };
+
+  const setPendingActionAndOpenAuth = (act: any) => {
+    setPendingAction(act);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleAuthSuccess = (authUser: any) => {
+    setIsAuthModalOpen(false);
+    setUser(authUser);
+    safeStorage.setItem("bluber_auth_user", JSON.stringify(authUser));
+    setUserProfile({
+      name: authUser.name,
+      phone: authUser.phone,
+      email: authUser.email
+    });
+    
+    // Now trigger the pendingAction if there is one!
+    if (pendingAction) {
+      const { type, data } = pendingAction;
+      setPendingAction(null);
+      if (type === "CUSTOM_ORDER" && data) {
+        handleAddCustomOrder(data.desc, authUser.name, authUser.phone);
+      } else if (type === "JOIN_WAITLIST") {
+        setIsEliteWaitlistOpen(true);
+      } else if (type === "BOOK_RIDE") {
+        setIsRiding(true);
+      } else if (type === "CHECKOUT") {
+        // Handled naturally by cart or shop detail being logged in now
+      }
+    }
+  };
+
+  const [userProfile, setUserProfile] = useState<{ name: string; phone: string; email: string }>(() => {
+    const saved = safeStorage.getItem("bluber_profile");
+    if (saved) return JSON.parse(saved);
+    const savedAuth = safeStorage.getItem("bluber_auth_user");
+    if (savedAuth) {
+      const u = JSON.parse(savedAuth);
+      return { name: u.name, phone: u.phone, email: u.email };
+    }
+    return { name: "", phone: "", email: "" };
+  });
+
+  const [savedAddresses, setSavedAddresses] = useState<Array<{ id: string; type: string; label: string; detail: string }>>(() => {
+    const saved = safeStorage.getItem("bluber_addresses");
+    return saved ? JSON.parse(saved) : [
+      { id: "addr-1", type: "Home", label: "Home Base Chamba", detail: "Near Chowgan square, Chamba Town, Himachal Pradesh" },
+      { id: "addr-2", type: "Work", label: "Work (HDFC Complex)", detail: "Chamba Market Plaza Road, Chamba" },
+      { id: "addr-3", type: "Other", label: "Khajjiar Cabin", detail: "Vista Retreat Cottage, Khajjiar Lake Road" }
+    ];
   });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -282,6 +387,14 @@ export default function App() {
   useEffect(() => {
     safeStorage.setItem("bluber_wallet", walletBalance.toString());
   }, [walletBalance]);
+
+  useEffect(() => {
+    safeStorage.setItem("bluber_profile", JSON.stringify(userProfile));
+  }, [userProfile]);
+
+  useEffect(() => {
+    safeStorage.setItem("bluber_addresses", JSON.stringify(savedAddresses));
+  }, [savedAddresses]);
 
   // Global navigation scroll state reset
   useEffect(() => {
@@ -497,6 +610,11 @@ export default function App() {
   };
 
   const handleAddCustomOrder = (desc: string, customerName = "Nitish Kaushal", phoneNumber = "+91-98782-99015") => {
+    if (!user) {
+      setPendingAction({ type: "CUSTOM_ORDER", data: { desc, customerName, phoneNumber } });
+      setIsAuthModalOpen(true);
+      return;
+    }
     try {
       const saved = safeStorage.getItem("bluber_custom_orders");
       const current = saved ? JSON.parse(saved) : [
@@ -685,6 +803,8 @@ export default function App() {
               initialElite={isEliteRide}
               custTime={custTime}
               onCustTimeChange={setCustTime}
+              user={user}
+              onRequireAuth={setPendingActionAndOpenAuth}
             />
           ) : isCouriering ? (
             <CourierApplet 
@@ -696,6 +816,8 @@ export default function App() {
                 setIsCouriering(false);
                 setActiveTab("orders");
               }}
+              user={user}
+              onRequireAuth={setPendingActionAndOpenAuth}
             />
           ) : isGrocery ? (
             <GroceryPanel 
@@ -713,6 +835,7 @@ export default function App() {
             <CustomOrderApplet 
               onAddCustomOrder={handleAddCustomOrder}
               onBack={() => setIsCustomOrder(false)}
+              user={user}
             />
           ) : selectedShop ? (
             <ShopDetail 
@@ -730,6 +853,8 @@ export default function App() {
                 setSelectedShop(null);
                 setActiveTab("orders");
               }}
+              user={user}
+              onRequireAuth={setPendingActionAndOpenAuth}
             />
           ) : (
             // standard Tab Switchers
@@ -767,12 +892,17 @@ export default function App() {
                 <CartTab 
                   cart={cart}
                   walletBalance={walletBalance}
+                  userProfile={userProfile}
+                  savedAddresses={savedAddresses}
                   onAddToCart={handleAddToCart}
                   onRemoveFromCart={handleRemoveFromCart}
                   onClearCart={() => setCart([])}
                   onPlaceOrder={handleAddOrder}
                   onDeductWallet={handleDeductWallet}
                   onSwitchToOrders={() => setActiveTab("orders")}
+                  onTopUpWallet={(amt) => setWalletBalance(prev => prev + amt)}
+                  user={user}
+                  onRequireAuth={setPendingActionAndOpenAuth}
                 />
               )}
 
@@ -785,6 +915,13 @@ export default function App() {
                   onViewAllOrders={() => setActiveTab("orders")}
                   isNotifiedVMart={isNotifiedVMart}
                   onToggleVMartNotification={handleToggleVMartNotification}
+                  userProfile={userProfile}
+                  onUpdateProfile={(profile) => setUserProfile(profile)}
+                  savedAddresses={savedAddresses}
+                  onUpdateAddresses={(addresses) => setSavedAddresses(addresses)}
+                  user={user}
+                  onRequireAuth={setPendingActionAndOpenAuth}
+                  onLogout={handleLogout}
                 />
               )}
 
@@ -1115,7 +1252,7 @@ export default function App() {
                     </div>
 
                     <div 
-                      onClick={() => setIsEliteWaitlistOpen(true)}
+                      onClick={handleOpenEliteWaitlist}
                       className="bg-gradient-to-br from-[#F5F2FF] via-[#FAF5FF] to-[#FFF0F5] rounded-[28px] p-7 border border-white/60 shadow-[0_20px_48px_-12px_rgba(139,92,246,0.12)] flex flex-col space-y-5 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:-translate-y-1.5 hover:scale-[1.01] hover:shadow-[0_24px_56px_-12px_rgba(139,92,246,0.18)] active:translate-y-0 active:scale-[0.99] group"
                     >
                       {/* Premium light streak, subtle glass highlights, and ambient lighting */}
@@ -1177,7 +1314,7 @@ export default function App() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setIsEliteWaitlistOpen(true);
+                              handleOpenEliteWaitlist();
                             }}
                             className="bg-white/50 backdrop-blur-md border border-white/60 hover:bg-white/70 text-purple-700 text-[11px] font-extrabold py-2.5 px-4.5 rounded-full shadow-[0_4px_12px_rgba(139,92,246,0.04)] transition-all flex items-center gap-2 cursor-pointer h-10"
                           >
@@ -1189,7 +1326,7 @@ export default function App() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setIsEliteWaitlistOpen(true);
+                              handleOpenEliteWaitlist();
                             }}
                             className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[11px] font-black py-2.5 px-4.5 rounded-full shadow-[0_8px_20px_-4px_rgba(139,92,246,0.2)] hover:shadow-[0_12px_24px_-4px_rgba(139,92,246,0.3)] transition-all flex items-center gap-2 border-none cursor-pointer h-10"
                           >
@@ -1839,6 +1976,15 @@ export default function App() {
           onClose={() => setIsEliteWaitlistOpen(false)} 
           onSubmit={handleJoinEliteWaitlist} 
           initialData={eliteBuddyData} 
+        />
+
+        <AuthModal 
+          isOpen={isAuthModalOpen} 
+          onClose={() => {
+            setIsAuthModalOpen(false);
+            setPendingAction(null);
+          }} 
+          onSuccess={handleAuthSuccess} 
         />
 
       </div>

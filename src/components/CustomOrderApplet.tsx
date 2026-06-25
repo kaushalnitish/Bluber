@@ -13,11 +13,13 @@ import {
 interface CustomOrderAppletProps {
   onAddCustomOrder: (desc: string) => void;
   onBack: () => void;
+  user?: any;
 }
 
 export const CustomOrderApplet: React.FC<CustomOrderAppletProps> = ({
   onAddCustomOrder,
-  onBack
+  onBack,
+  user
 }) => {
   const [description, setDescription] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -25,6 +27,10 @@ export const CustomOrderApplet: React.FC<CustomOrderAppletProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim()) return;
+    if (!user) {
+      onAddCustomOrder(description);
+      return;
+    }
     onAddCustomOrder(description);
     setIsSubmitted(true);
     setDescription("");

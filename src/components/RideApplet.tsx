@@ -22,6 +22,7 @@ import { Order } from "../types";
 import { safeStorage } from "../utils/safeStorage";
 import { getRatePerKm } from "../utils/pricing";
 import { ImageComponent } from "./ImageComponent";
+import { submitToFormspree } from "../utils/formspree";
 
 interface LatLngLiteral {
   lat: number;
@@ -186,6 +187,8 @@ interface RideAppletProps {
   initialElite?: boolean;
   custTime: Date;
   onCustTimeChange: (time: Date) => void;
+  user?: any;
+  onRequireAuth?: (pendingAction?: any) => void;
 }
 
 // Format Date nicely for display
@@ -219,7 +222,9 @@ const RideAppletInner: React.FC<RideAppletProps> = ({
   onAddOrder, 
   onBack,
   custTime,
-  onCustTimeChange
+  onCustTimeChange,
+  user,
+  onRequireAuth
 }) => {
   const [step, setStep] = useState<"form" | "pricing" | "payment" | "searching" | "accepted" | "arrived" | "ongoing" | "completed">("form");
   
@@ -591,21 +596,13 @@ const RideAppletInner: React.FC<RideAppletProps> = ({
     setEnquiryLoading(true);
 
     try {
-      // Direct Formspree endpoint integration using nitishkaushal17@gmail.com
-      const response = await fetch("https://formspree.io/f/xvonzgnl", {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          name: formName,
-          mobile: formMobile,
-          email: formEmail,
-          subject: formSubject,
-          message: formMessage,
-          to: "nitishkaushal17@gmail.com"
-        })
+      await submitToFormspree({
+        name: formName,
+        phone: formMobile,
+        email: formEmail,
+        serviceType: "General Enquiry Form",
+        subject: formSubject,
+        message: formMessage
       });
 
       // Save submission record locally for Admin panel access
@@ -623,16 +620,12 @@ const RideAppletInner: React.FC<RideAppletProps> = ({
       localSubs.unshift(newSub);
       safeStorage.setItem("bluber_enquiries", JSON.stringify(localSubs));
 
-      if (response.ok) {
-        setEnquirySuccess(true);
-        setFormSubject("");
-        setFormMessage("");
-      } else {
-        // Fallback success for simulation if Formspree is down
-        setEnquirySuccess(true);
-      }
-    } catch {
-      // Fail proof local verification
+      setEnquirySuccess(true);
+      setFormSubject("");
+      setFormMessage("");
+    } catch (err) {
+      console.error(err);
+      // Fallback success for simulation if offline
       setEnquirySuccess(true);
     } finally {
       setEnquiryLoading(false);
@@ -1072,7 +1065,13 @@ const RideAppletInner: React.FC<RideAppletProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setStep("payment")}
+              onClick={() => {
+                if (!user) {
+                  onRequireAuth?.({ type: "BOOK_RIDE" });
+                  return;
+                }
+                setStep("payment");
+              }}
               className="flex-1 py-3 bg-primary text-white font-black text-xs rounded-xl shadow-xs tracking-wider uppercase active:scale-95 transition-all text-center border-none cursor-pointer"
             >
               Secure Prepaid UPI ➔
