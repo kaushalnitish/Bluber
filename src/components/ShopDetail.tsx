@@ -119,7 +119,7 @@ export const ShopDetail: React.FC<ShopDetailProps> = ({
   };
 
   return (
-    <div id="shop-detail-root" className="bg-canvas min-h-screen animate-fade-in pb-28 text-left">
+    <div id="shop-detail-root" className="bg-canvas min-h-dvh animate-fade-in pb-28 text-left">
       {/* Immersive Photo Hero Header */}
       <div className="relative h-64 w-full overflow-hidden bg-neutral-900">
         <ImageComponent 

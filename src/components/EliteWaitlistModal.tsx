@@ -11,11 +11,11 @@ interface EliteWaitlistModalProps {
 }
 
 const AVAILABLE_INTERESTS = [
-  { id: "cafe", label: "Café & Food Exploration", desc: "Discover Chamba's hidden tea stalls & hill-top cafés." },
-  { id: "shopping", label: "Shopping & Handloom Sourcing", desc: "Navigate local Chamba Rumal weavers & leather shoe markets." },
-  { id: "history", label: "Heritage & Local Walks", desc: "Explore the ancient Laxmi Narayan Temple & Bhuri Singh Museum." },
-  { id: "transit", label: "Local Transit Concierge", desc: "A trustworthy companion to guide city navigation & errands." },
-  { id: "events", label: "Events & Festivals Assistant", desc: "Accompaniment to local Minjar fairs and community gatherings." }
+  { id: "cafe", label: "Café & Dessert Dates", desc: "Share sweet conversations over hot tea & hill-top desserts." },
+  { id: "shopping", label: "Shopping Companion", desc: "Have a helpful companion to carry bags and offer great fashion feedback." },
+  { id: "walks", label: "Scenic & Sunset Walks", desc: "Enjoy strolls around the Chaugan or scenic trails in Chamba." },
+  { id: "events", label: "Social Partner & Events Guide", desc: "Secure a polished plus-one for weddings, family functions, or local fairs." },
+  { id: "assistance", label: "Errand & Travel Support", desc: "A reliable gentleman assistant to help navigate transit, luggage, and chores." }
 ];
 
 export const EliteWaitlistModal: React.FC<EliteWaitlistModalProps> = ({
@@ -118,10 +118,10 @@ export const EliteWaitlistModal: React.FC<EliteWaitlistModalProps> = ({
                       Elite Membership
                     </span>
                     <h2 className="text-xl font-extrabold text-white tracking-tight font-sans">
-                      Join "Need a Company?" Waitlist
+                      Join "Rent a Friend" Waitlist
                     </h2>
                     <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                      A lifestyle companion service curated for secure city navigation, shopping guidance, local heritage walks, and social assistance.
+                      A delightful companion concierge curated for café dates, movie outings, local shopping walks, events, and supportive assistance.
                     </p>
                   </div>
 
@@ -233,7 +233,7 @@ export const EliteWaitlistModal: React.FC<EliteWaitlistModalProps> = ({
                     <span className="text-[9px] uppercase tracking-[0.25em] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-400/20 px-3 py-1 rounded-full">Spot Secured</span>
                     <h2 className="text-xl font-extrabold text-white tracking-tight leading-tight">Welcome to BLUBER Elite</h2>
                     <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                      Your waitlist registration is complete. We are vetting premium companions inside Chamba for launch.
+                      Your waitlist registration is complete. We are vetting premium gentlemen companions inside Chamba for launch.
                     </p>
                   </div>
 

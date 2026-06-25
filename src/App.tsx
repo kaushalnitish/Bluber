@@ -29,7 +29,11 @@ import {
   IceCream,
   FileText,
   X,
-  CheckCircle
+  CheckCircle,
+  Pizza,
+  Coffee,
+  Cookie,
+  Heart
 } from "lucide-react";
 
 import { 
@@ -578,11 +582,11 @@ export default function App() {
   const cartSubtotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
 
   return (
-    <div className="min-h-screen bg-canvas md:py-6 flex items-center justify-center font-sans tracking-tight antialiased selection:bg-primary-light">
+    <div className="min-h-dvh bg-canvas md:py-6 flex items-center justify-center font-sans tracking-tight antialiased selection:bg-primary-light">
       {/* Immersive iPhone 14 Viewport Container */}
       <div 
         id="phone-wrapper" 
-        className="w-full max-w-md bg-[#F7F8F5] h-screen md:h-[844px] shadow-custom relative flex flex-col overflow-hidden md:rounded-[40px] md:border-8 md:border-[#111827] pointer-events-auto"
+        className="w-full max-w-md bg-[#F7F8F5] h-dvh md:h-[844px] shadow-custom relative flex flex-col overflow-hidden md:rounded-[40px] md:border-8 md:border-[#111827] pointer-events-auto"
       >
         {/* Global Success Toast */}
         {successToast.show && (
@@ -1112,46 +1116,58 @@ export default function App() {
 
                     <div 
                       onClick={() => setIsEliteWaitlistOpen(true)}
-                      className="bg-neutral-950 text-white rounded-[32px] p-6 border border-white/[0.08] shadow-[0_20px_45px_rgba(0,0,0,0.15)] flex flex-col space-y-4 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:-translate-y-1 hover:scale-[1.01] active:translate-y-0 active:scale-[0.99] group"
+                      className="bg-gradient-to-br from-[#F5F2FF] via-[#FAF5FF] to-[#FFF0F5] rounded-[28px] p-7 border border-white/60 shadow-[0_20px_48px_-12px_rgba(139,92,246,0.12)] flex flex-col space-y-5 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:-translate-y-1.5 hover:scale-[1.01] hover:shadow-[0_24px_56px_-12px_rgba(139,92,246,0.18)] active:translate-y-0 active:scale-[0.99] group"
                     >
-                      {/* Premium light streak and soft ambient lighting (Apple & Soho House Style) */}
-                      <div className="absolute top-0 right-0 w-44 h-44 bg-gradient-to-b from-white/[0.02] to-transparent rounded-full blur-3xl pointer-events-none"></div>
-                      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-slate-500/5 rounded-full blur-2xl pointer-events-none"></div>
+                      {/* Premium light streak, subtle glass highlights, and ambient lighting */}
+                      <div className="absolute top-0 right-0 w-52 h-52 bg-gradient-to-tr from-purple-400/25 to-pink-400/20 rounded-full blur-3xl pointer-events-none"></div>
+                      <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-indigo-400/15 rounded-full blur-2xl pointer-events-none"></div>
+                      <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-purple-300/10 rounded-full blur-xl pointer-events-none"></div>
 
                       <div className="flex justify-between items-start gap-4">
-                        <div className="space-y-2">
-                          <span className="inline-flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] text-slate-300 px-3 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-[0.15em] leading-none">
-                            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse"></span>
-                            Coming Soon
-                          </span>
-                          <h4 className="text-[17px] font-extrabold text-white tracking-tight leading-tight font-sans">
-                            Need a Company?
+                        <div className="space-y-3">
+                          {/* Premium Glass Pill Badge */}
+                          <div className="flex">
+                            <span className="inline-flex items-center gap-1.5 bg-white/40 backdrop-blur-md border border-white/50 text-purple-700 px-3 py-1.5 rounded-full text-[9px] font-extrabold uppercase tracking-[0.18em] leading-none shadow-[0_2px_8px_rgba(139,92,246,0.04)]">
+                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+                              Coming Soon
+                            </span>
+                          </div>
+                          
+                          <h4 className="text-[19px] font-black text-slate-900 tracking-tight leading-none font-sans flex items-center gap-2">
+                            Rent a Friend
                           </h4>
-                          <p className="text-[11.5px] text-slate-400 leading-relaxed font-sans max-w-[270px]">
-                            Verified companions for shopping, cafés, local exploration, events and city assistance.
+                          <p className="text-[12px] text-slate-700/90 leading-relaxed font-sans max-w-[275px]">
+                            Find a verified companion for shopping, cafés, events, local exploration and everyday outings.
                           </p>
                         </div>
-                        <div className="relative flex items-center justify-center p-3.5 rounded-[22px] bg-white/[0.03] border border-white/[0.06] shadow-md overflow-hidden transition-all duration-300 group-hover:bg-white/[0.05] group-hover:border-white/[0.12] shrink-0">
-                          <Compass size={28} className="text-slate-300 transition-transform duration-550 group-hover:rotate-45" />
+
+                        {/* Premium Outline Lifestyle Icon inside Frosted Glass Container with Soft Glow */}
+                        <div className="relative flex items-center justify-center p-3.5 rounded-[22px] bg-white/30 backdrop-blur-md border border-white/50 text-purple-600 shadow-[0_8px_24px_-6px_rgba(139,92,246,0.15)] overflow-hidden transition-all duration-300 group-hover:bg-white/50 group-hover:scale-105 shrink-0">
+                          <div className="absolute inset-0 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                          <Sparkles size={24} className="text-purple-600 relative z-10 transition-transform duration-500 group-hover:rotate-12" />
                         </div>
                       </div>
 
-                      {/* Info highlights inside card */}
-                      <div className="text-[10.5px] text-slate-400 leading-relaxed bg-white/[0.02] p-3.5 rounded-2xl border border-white/[0.04] space-y-2 font-sans">
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-400 font-bold">✓</span>
-                          <span><strong>Vetted Partners:</strong> Background-verified local guides and lifestyle facilitators.</span>
+                      {/* Natural information highlights with subtle transparent separators instead of a box */}
+                      <div className="text-[11px] text-slate-700/95 leading-relaxed py-3.5 border-y border-white/30 space-y-3 font-sans">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-white/45 border border-white/50 text-purple-600 shrink-0 shadow-[0_2px_6px_rgba(139,92,246,0.05)]">
+                            <span className="text-[10px] font-bold">✓</span>
+                          </div>
+                          <span><strong>Vetted Companions:</strong> Background-verified, respectful, smart, and friendly local partners.</span>
                         </div>
-                        <div className="flex items-start gap-2">
-                          <span className="text-slate-400 font-bold mt-0.5">✓</span>
-                          <span><strong>Absolute Discretion:</strong> Highly professional, secure & private companion concierge.</span>
+                        <div className="flex items-start gap-2.5">
+                          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-white/45 border border-white/50 text-purple-600 shrink-0 shadow-[0_2px_6px_rgba(139,92,246,0.05)] mt-0.5">
+                            <span className="text-[10px] font-bold">✓</span>
+                          </div>
+                          <span><strong>Ultimate Discretion:</strong> Highly professional, secure, and completely private helper service.</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-white/[0.06] mt-1 gap-4">
+                      <div className="flex items-center justify-between pt-1 gap-4">
                         <div>
                           <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-[0.15em] leading-none">Vetting Status</p>
-                          <p className="text-[13px] font-bold text-slate-300 mt-1.5">
+                          <p className="text-[13px] font-bold text-slate-900 mt-1.5">
                             {isNotifiedEliteBuddy ? "Priority Queue Secured" : "Applications Open"}
                           </p>
                         </div>
@@ -1163,9 +1179,9 @@ export default function App() {
                               e.stopPropagation();
                               setIsEliteWaitlistOpen(true);
                             }}
-                            className="bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] text-white text-[11px] font-black py-3 px-5 rounded-2xl transition-all flex items-center gap-2 cursor-pointer h-11"
+                            className="bg-white/50 backdrop-blur-md border border-white/60 hover:bg-white/70 text-purple-700 text-[11px] font-extrabold py-2.5 px-4.5 rounded-full shadow-[0_4px_12px_rgba(139,92,246,0.04)] transition-all flex items-center gap-2 cursor-pointer h-10"
                           >
-                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
                             <span>On Waitlist (#247)</span>
                           </button>
                         ) : (
@@ -1175,9 +1191,9 @@ export default function App() {
                               e.stopPropagation();
                               setIsEliteWaitlistOpen(true);
                             }}
-                            className="bg-white hover:bg-slate-200 text-neutral-950 text-[11px] font-black py-3 px-5 rounded-2xl shadow-md transition-all flex items-center gap-2 border-none cursor-pointer h-11"
+                            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[11px] font-black py-2.5 px-4.5 rounded-full shadow-[0_8px_20px_-4px_rgba(139,92,246,0.2)] hover:shadow-[0_12px_24px_-4px_rgba(139,92,246,0.3)] transition-all flex items-center gap-2 border-none cursor-pointer h-10"
                           >
-                            <span>Join Waitlist</span>
+                            <span>Notify Me</span>
                             <ArrowRight size={13} className="stroke-[3]" />
                           </button>
                         )}
@@ -1232,232 +1248,314 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 4. Featured Products */}
-                  <div id="featured-products" className="text-left pt-2 pb-5">
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex items-center gap-2">
-                        <Sparkles size={16} className="text-primary" />
-                        <h3 className="text-sm font-black text-text-primary tracking-tight font-sans">Featured Products</h3>
-                      </div>
-                      <button onClick={() => setActiveTab("explore")} className="text-[10.5px] font-bold text-primary hover:underline cursor-pointer bg-none border-none font-sans">See all</button>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-                      {[
-                        {
-                          id: "fp_pizza",
-                          name: "Margherita Pizza",
-                          category: "Pizza",
-                          price: 249,
-                          image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400&auto=format&fit=crop",
-                          shopId: "cafe_hilltop",
-                          shopName: "Cafe Hilltop",
-                          type: "food" as const
-                        },
-                        {
-                          id: "fp_burger",
-                          name: "Veg Burger",
-                          category: "Fast Food",
-                          price: 119,
-                          image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=400&auto=format&fit=crop",
-                          shopId: "cafe_hilltop",
-                          shopName: "Cafe Hilltop",
-                          type: "food" as const
-                        },
-                        {
-                          id: "fp_fries",
-                          name: "French Fries",
-                          category: "Fast Food",
-                          price: 99,
-                          image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?q=80&w=400&auto=format&fit=crop",
-                          shopId: "cafe_hilltop",
-                          shopName: "Cafe Hilltop",
-                          type: "food" as const
-                        },
-                        {
-                          id: "fp_momos",
-                          name: "Momos",
-                          category: "Fast Food",
-                          price: 129,
-                          image: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?q=80&w=400&auto=format&fit=crop",
-                          shopId: "cafe_hilltop",
-                          shopName: "Cafe Hilltop",
-                          type: "food" as const
-                        },
-                        {
-                          id: "fp_coffee",
-                          name: "Cold Coffee",
-                          category: "Beverages",
-                          price: 139,
-                          image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=400&auto=format&fit=crop",
-                          shopId: "cafe_hilltop",
-                          shopName: "Cafe Hilltop",
-                          type: "food" as const
-                        },
-                        {
-                          id: "fp_soda",
-                          name: "Soft Drinks",
-                          category: "Beverages",
-                          price: 45,
-                          image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=400&auto=format&fit=crop",
-                          shopId: "cafe_hilltop",
-                          shopName: "Cafe Hilltop",
-                          type: "food" as const
-                        },
-                        {
-                          id: "fp_icecream",
-                          name: "Ice Cream Tubs",
-                          category: "Ice Cream",
-                          price: 219,
-                          image: "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?q=80&w=400&auto=format&fit=crop",
-                          shopId: "cafe_hilltop",
-                          shopName: "Cafe Hilltop",
-                          type: "food" as const
-                        },
-                        {
-                          id: "fp_chocolate",
-                          name: "Chocolate Bars",
-                          category: "Snacks",
-                          price: 80,
-                          image: "https://images.unsplash.com/photo-1511381939415-e44015466834?q=80&w=400&auto=format&fit=crop",
-                          shopId: "malik_general",
-                          shopName: "Mallik General Store",
-                          type: "grocery" as const
-                        },
-                        {
-                          id: "fp_chips",
-                          name: "Chips",
-                          category: "Snacks",
-                          price: 30,
-                          image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?q=80&w=400&auto=format&fit=crop",
-                          shopId: "malik_general",
-                          shopName: "Mallik General Store",
-                          type: "grocery" as const
-                        },
-                        {
-                          id: "fp_noodles",
-                          name: "Instant Noodles",
-                          category: "Essentials",
-                          price: 60,
-                          image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?q=80&w=400&auto=format&fit=crop",
-                          shopId: "malik_general",
-                          shopName: "Mallik General Store",
-                          type: "grocery" as const
+                  {/* 4. Featured Products Section - Organized by Premium Quick-Commerce Carousels */}
+                  <div id="featured-products-section" className="text-left pt-2 pb-5 space-y-8">
+                    {[
+                      {
+                        id: "popular",
+                        title: "Popular Near You",
+                        iconName: "Sparkles",
+                        iconColor: "text-amber-500 animate-pulse",
+                        subtitle: "Highly ordered items around you",
+                        products: [
+                          {
+                            id: "fp_pizza",
+                            name: "Margherita Pizza",
+                            category: "Pizza",
+                            price: 249,
+                            image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          },
+                          {
+                            id: "fp_coffee",
+                            name: "Cold Coffee",
+                            category: "Beverages",
+                            price: 139,
+                            image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          },
+                          {
+                            id: "fp_burger",
+                            name: "Veg Burger",
+                            category: "Fast Food",
+                            price: 119,
+                            image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          },
+                          {
+                            id: "fp_icecream",
+                            name: "Ice Cream Tubs",
+                            category: "Ice Cream",
+                            price: 219,
+                            image: "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          },
+                          {
+                            id: "fp_chocolate",
+                            name: "Chocolate Bars",
+                            category: "Snacks",
+                            price: 80,
+                            image: "https://images.unsplash.com/photo-1511381939415-e44015466834?q=80&w=400&auto=format&fit=crop",
+                            shopId: "malik_general",
+                            shopName: "Mallik General Store",
+                            type: "grocery" as const
+                          }
+                        ]
+                      },
+                      {
+                        id: "fast_food",
+                        title: "Fast Food",
+                        iconName: "Pizza",
+                        iconColor: "text-red-500",
+                        subtitle: "Delicious freshly made quick bites",
+                        products: [
+                          {
+                            id: "fp_burger",
+                            name: "Veg Burger",
+                            category: "Fast Food",
+                            price: 119,
+                            image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          },
+                          {
+                            id: "fp_pizza",
+                            name: "Margherita Pizza",
+                            category: "Pizza",
+                            price: 249,
+                            image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          },
+                          {
+                            id: "fp_fries",
+                            name: "French Fries",
+                            category: "Fast Food",
+                            price: 99,
+                            image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          },
+                          {
+                            id: "fp_momos",
+                            name: "Momos",
+                            category: "Fast Food",
+                            price: 129,
+                            image: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          }
+                        ]
+                      },
+                      {
+                        id: "beverages",
+                        title: "Beverages",
+                        iconName: "Coffee",
+                        iconColor: "text-blue-500",
+                        subtitle: "Chilled refreshment delivered instant",
+                        products: [
+                          {
+                            id: "fp_coffee",
+                            name: "Cold Coffee",
+                            category: "Beverages",
+                            price: 139,
+                            image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          },
+                          {
+                            id: "fp_soda",
+                            name: "Soft Drinks",
+                            category: "Beverages",
+                            price: 45,
+                            image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          }
+                        ]
+                      },
+                      {
+                        id: "ice_cream",
+                        title: "Ice Cream",
+                        iconName: "IceCream",
+                        iconColor: "text-pink-500",
+                        subtitle: "Frozen treats & creamy scoops",
+                        products: [
+                          {
+                            id: "fp_icecream",
+                            name: "Ice Cream Tubs",
+                            category: "Ice Cream",
+                            price: 219,
+                            image: "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?q=80&w=400&auto=format&fit=crop",
+                            shopId: "cafe_hilltop",
+                            shopName: "Cafe Hilltop",
+                            type: "food" as const
+                          }
+                        ]
+                      },
+                      {
+                        id: "snacks",
+                        title: "Snacks",
+                        iconName: "Cookie",
+                        iconColor: "text-yellow-500",
+                        subtitle: "Quick munchies & instant packs",
+                        products: [
+                          {
+                            id: "fp_chocolate",
+                            name: "Chocolate Bars",
+                            category: "Snacks",
+                            price: 80,
+                            image: "https://images.unsplash.com/photo-1511381939415-e44015466834?q=80&w=400&auto=format&fit=crop",
+                            shopId: "malik_general",
+                            shopName: "Mallik General Store",
+                            type: "grocery" as const
+                          },
+                          {
+                            id: "fp_chips",
+                            name: "Chips",
+                            category: "Snacks",
+                            price: 30,
+                            image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?q=80&w=400&auto=format&fit=crop",
+                            shopId: "malik_general",
+                            shopName: "Mallik General Store",
+                            type: "grocery" as const
+                          },
+                          {
+                            id: "fp_noodles",
+                            name: "Instant Noodles",
+                            category: "Essentials",
+                            price: 60,
+                            image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?q=80&w=400&auto=format&fit=crop",
+                            shopId: "malik_general",
+                            shopName: "Mallik General Store",
+                            type: "grocery" as const
+                          }
+                        ]
+                      }
+                    ].map((carousel) => {
+                      const renderIcon = (name: string, color: string) => {
+                        const props = { size: 18, className: color };
+                        switch (name) {
+                          case "Sparkles": return <Sparkles {...props} />;
+                          case "Pizza": return <Pizza {...props} />;
+                          case "Coffee": return <Coffee {...props} />;
+                          case "IceCream": return <IceCream {...props} />;
+                          case "Cookie": return <Cookie {...props} />;
+                          default: return <Sparkles {...props} />;
                         }
-                      ].map((prod) => {
-                        const qty = cart.find(ci => ci.id === prod.id)?.quantity || 0;
-                        return (
-                          <div 
-                            key={prod.id} 
-                            className="bg-white rounded-[20px] p-2.5 border border-border-custom/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] hover:scale-[1.01] active:scale-[0.99] transition-all text-left"
-                          >
-                            <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-neutral-50 border border-neutral-100/30">
-                              <ImageComponent
-                                src={prod.image}
-                                alt={prod.name}
-                                fallbackName={prod.name}
-                                fallbackType={prod.type === "food" ? "food" : "product"}
-                                categoryText={prod.category}
-                                className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                              />
-                              <span className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-xs text-[7px] font-black text-text-primary px-1.5 py-0.5 rounded-full uppercase border border-border-custom/30 font-sans tracking-wide scale-90 origin-top-left">
-                                {prod.category}
-                              </span>
-                            </div>
-                            
-                            <div className="mt-2 flex-1 flex flex-col justify-between">
-                              <div>
-                                <h4 className="text-[11px] font-extrabold text-neutral-800 leading-tight font-sans tracking-tight line-clamp-2 h-[34px] flex items-center">
-                                  {prod.name}
-                                </h4>
-                                <p className="text-[8px] text-text-secondary mt-0.5 font-bold uppercase tracking-wider font-sans">
-                                  {prod.category}
-                                </p>
+                      };
+
+                      return (
+                        <div key={carousel.id} className="space-y-3">
+                          {/* Carousel Header */}
+                          <div className="flex justify-between items-end px-1">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1.5">
+                                {renderIcon(carousel.iconName, carousel.iconColor)}
+                                <h3 className="text-[13.5px] font-black text-text-primary tracking-tight font-sans">
+                                  {carousel.title}
+                                </h3>
                               </div>
-                              
-                              <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-dashed border-border-custom/25">
-                                <span className="text-[12px] font-black text-text-primary font-mono">
-                                  ₹{prod.price}
-                                </span>
-                                
-                                {qty > 0 ? (
-                                  <div className="flex items-center bg-primary text-white rounded-lg px-2 py-0.5 gap-2 text-xs font-black shadow-xs border border-primary/20">
-                                    <button
-                                      onClick={() => handleRemoveFromCart(prod.id)}
-                                      className="hover:scale-110 active:scale-90 transition-transform font-bold outline-none bg-transparent text-white border-none cursor-pointer p-0"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="font-mono text-[10px]">{qty}</span>
-                                    <button
-                                      onClick={() => handleAddToCart(prod, prod.shopId, prod.shopName, prod.type)}
-                                      className="hover:scale-110 active:scale-90 transition-transform font-bold outline-none bg-transparent text-white border-none cursor-pointer p-0"
-                                    >
-                                      +
-                                    </button>
+                              <p className="text-[9.5px] text-text-secondary font-medium font-sans leading-none">
+                                {carousel.subtitle}
+                              </p>
+                            </div>
+                            <button 
+                              onClick={() => setActiveTab("explore")} 
+                              className="text-[10px] font-bold text-primary hover:underline cursor-pointer bg-none border-none font-sans"
+                            >
+                              See all
+                            </button>
+                          </div>
+
+                          {/* Horizontal Scroll Carousel */}
+                          <div className="flex gap-3.5 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none snap-x snap-mandatory scroll-smooth no-scrollbar">
+                            {carousel.products.map((prod) => {
+                              const qty = cart.find(ci => ci.id === prod.id)?.quantity || 0;
+                              return (
+                                <div 
+                                  key={prod.id} 
+                                  className="bg-white rounded-[22px] p-3.5 border border-border-custom/25 shadow-[0_4px_16px_rgba(0,0,0,0.015)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.035)] hover:scale-[1.01] active:scale-[0.99] transition-all text-left flex flex-col justify-between w-[160px] sm:w-[210px] shrink-0 snap-start"
+                                >
+                                  {/* Product Image */}
+                                  <div className="relative aspect-square w-full rounded-[18px] overflow-hidden bg-neutral-50 border border-neutral-100/30">
+                                    <ImageComponent
+                                      src={prod.image}
+                                      alt={prod.name}
+                                      fallbackName={prod.name}
+                                      fallbackType={prod.type === "food" ? "food" : "product"}
+                                      categoryText={prod.category}
+                                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                                    />
+                                    <span className="absolute top-2 left-2 bg-white/90 backdrop-blur-xs text-[7px] font-black text-text-primary px-1.5 py-0.5 rounded-full uppercase border border-border-custom/20 font-sans tracking-wide">
+                                      {prod.category}
+                                    </span>
                                   </div>
-                                ) : (
-                                  <button
-                                    onClick={() => handleAddToCart(prod, prod.shopId, prod.shopName, prod.type)}
-                                    className="bg-primary hover:bg-[#1E6B3D] text-white text-[9.5px] font-black px-2.5 py-1 rounded-lg border-none shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer uppercase tracking-wider flex items-center gap-1 font-sans"
-                                  >
-                                    Add
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 5. Popular Near You */}
-                  <div id="popular-near-you" className="text-left pt-2">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-sm font-black text-text-primary tracking-tight font-sans">🍕 Popular Near You</h3>
-                      <button onClick={() => setSelectedShop({ id: "cafe_hilltop", type: "restaurant" })} className="text-[10px] font-bold text-primary hover:underline cursor-pointer bg-none border-none font-sans">See all</button>
-                    </div>
-
-                    <div className="flex gap-4 overflow-x-auto pb-1.5 no-scrollbar">
-                      {[
-                        { id: "cafe_hilltop", targetId: "cafe_hilltop", name: "Cafe Hilltop", cuisine: "Italian, Continental", rating: 4.6, eta: "20-30 min", priceRange:  "₹250 for two", image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=200&auto=format&fit=crop" },
-                        { id: "pizza_corner", targetId: "cafe_hilltop", name: "Pizza Corner", cuisine: "Gourmet Woodfired", rating: 4.8, eta: "15-25 min", priceRange: "₹300 for two", image: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?q=80&w=200&auto=format&fit=crop" },
-                        { id: "momo_express", targetId: "tibetan_kitchen", name: "Momo Express", cuisine: "Tibetan Food", rating: 4.5, eta: "15-20 min", priceRange: "₹180 for two", image: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?q=80&w=200&auto=format&fit=crop" },
-                        { id: "burger_hub", targetId: "cafe_hilltop", name: "Burger Hub", cuisine: "American Fast Food", rating: 4.3, eta: "10-15 min", priceRange: "₹200 for two", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=200&auto=format&fit=crop" }
-                      ].map((foodShop) => (
-                        <div
-                          key={foodShop.id}
-                          onClick={() => setSelectedShop({ id: foodShop.targetId, type: "restaurant" })}
-                          className="bg-white w-52 rounded-[24px] overflow-hidden shadow-sm hover:scale-[1.02] cursor-pointer transition-all shrink-0 text-left border border-border-custom/40"
-                        >
-                          <div className="relative h-28 w-full bg-neutral-50">
-                            <ImageComponent 
-                              src={foodShop.image} 
-                              alt={foodShop.name} 
-                              fallbackName={foodShop.name}
-                              fallbackType="restaurant"
-                              className="w-full h-full object-cover" 
-                            />
-                          </div>
-                          
-                          <div className="p-3.5 space-y-1">
-                            <h4 className="text-xs font-black text-text-primary tracking-tight leading-none">{foodShop.name}</h4>
-                            <p className="text-[10px] text-text-secondary truncate">{foodShop.cuisine}</p>
-                            <p className="text-[9.5px] text-primary font-black mt-0.5">{foodShop.priceRange}</p>
-                            
-                            <div className="flex items-center gap-1.5 pt-1 text-[10px] font-bold text-text-primary">
-                              <span className="flex items-center gap-0.5 bg-yellow-50 text-amber-700 px-1.5 py-0.25 rounded-md">
-                                <Star size={10} className="text-amber-500 fill-amber-500" />
-                                {foodShop.rating}
-                              </span>
-                              <span>•</span>
-                              <span className="text-text-secondary text-[9px]">Chamba Favorite</span>
-                            </div>
+                                  
+                                  {/* Info Area */}
+                                  <div className="mt-2.5 flex-1 flex flex-col justify-between">
+                                    <div>
+                                      <h4 className="text-[11.5px] font-extrabold text-neutral-800 leading-snug font-sans tracking-tight line-clamp-2 h-9 flex items-center">
+                                        {prod.name}
+                                      </h4>
+                                      <p className="text-[8.5px] text-text-secondary mt-0.5 font-bold uppercase tracking-wider font-sans">
+                                        {prod.category}
+                                      </p>
+                                    </div>
+                                    
+                                    {/* Price & Action Row */}
+                                    <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-dashed border-border-custom/25">
+                                      <span className="text-[12.5px] font-black text-text-primary font-mono">
+                                        ₹{prod.price}
+                                      </span>
+                                      
+                                      {qty > 0 ? (
+                                        <div className="flex items-center bg-primary text-white rounded-full px-2 py-0.5 gap-2 text-xs font-black shadow-xs border border-primary/20">
+                                          <button
+                                            onClick={() => handleRemoveFromCart(prod.id)}
+                                            className="hover:scale-110 active:scale-90 transition-transform font-bold outline-none bg-transparent text-white border-none cursor-pointer p-0"
+                                          >
+                                            -
+                                          </button>
+                                          <span className="font-mono text-[10px]">{qty}</span>
+                                          <button
+                                            onClick={() => handleAddToCart(prod, prod.shopId, prod.shopName, prod.type)}
+                                            className="hover:scale-110 active:scale-90 transition-transform font-bold outline-none bg-transparent text-white border-none cursor-pointer p-0"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleAddToCart(prod, prod.shopId, prod.shopName, prod.type)}
+                                          className="bg-primary hover:bg-[#154B2B] text-white text-[9.5px] font-black px-3 py-1 rounded-full border-none shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer uppercase tracking-wider flex items-center gap-1 font-sans"
+                                        >
+                                          + Add
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
 
                   {/* 6. Custom Order Section */}

@@ -640,7 +640,7 @@ const RideAppletInner: React.FC<RideAppletProps> = ({
   };
 
   return (
-    <div id="ride-applet-root" className="bg-canvas min-h-screen px-4 py-4 animate-fade-in pb-28 text-left">
+    <div id="ride-applet-root" className="bg-canvas min-h-dvh px-4 py-4 animate-fade-in pb-28 text-left">
       
       {/* Upper header */}
       <div className="flex items-center justify-between mb-4">

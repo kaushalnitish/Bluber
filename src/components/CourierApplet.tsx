@@ -108,7 +108,7 @@ export const CourierApplet: React.FC<CourierAppletProps> = ({
   };
 
   return (
-    <div id="courier-applet-root" className="bg-canvas min-h-screen px-4 py-4 animate-fade-in pb-28 text-left">
+    <div id="courier-applet-root" className="bg-canvas min-h-dvh px-4 py-4 animate-fade-in pb-28 text-left">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <button 

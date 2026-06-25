@@ -309,8 +309,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               Shop thousands of fashion, household and daily essentials directly through BLUBER.
             </p>
           </div>
-          <div className="bg-indigo-950/80 p-3 rounded-2xl border border-indigo-700/30 flex items-center justify-center text-3xl shadow-inner self-start">
-            🛍️
+          <div className="bg-indigo-950/80 p-3.5 rounded-2xl border border-indigo-700/30 flex items-center justify-center shadow-inner self-start">
+            <ShoppingBag size={28} className="text-indigo-400" />
           </div>
         </div>
 
