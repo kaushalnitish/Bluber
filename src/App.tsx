@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Bell, 
   MapPin, 
@@ -57,6 +57,7 @@ import { safeStorage } from "./utils/safeStorage";
 import { CustomOrderApplet } from "./components/CustomOrderApplet";
 import { CustomRequestsHomeWidget } from "./components/CustomRequestsHomeWidget";
 import { EliteWaitlistModal } from "./components/EliteWaitlistModal";
+import { NotificationCenter } from "./components/NotificationCenter";
 import { StoreCard } from "./components/StoreCard";
 import { CartTab } from "./components/CartTab";
 import { AdminPanel } from "./components/AdminPanel";
@@ -166,16 +167,146 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [rideFeedback, setRideFeedback] = useState<"YES" | "NO" | null>(null);
   
-  // V-Mart Coming Soon notify state
+  // V-Mart Coming Soon states
   const [isNotifiedVMart, setIsNotifiedVMart] = useState<boolean>(() => {
     return safeStorage.getItem("bluber_v_mart_notified") === "true";
   });
 
-  const handleToggleVMartNotification = () => {
-    const newVal = !isNotifiedVMart;
-    setIsNotifiedVMart(newVal);
-    safeStorage.setItem("bluber_v_mart_notified", String(newVal));
+  const [showVMartBanner, setShowVMartBanner] = useState<boolean>(() => {
+    return safeStorage.getItem("bluber_v_mart_notified") !== "true";
+  });
+
+  const [isVMartReleased, setIsVMartReleased] = useState<boolean>(() => {
+    return safeStorage.getItem("bluber_v_mart_released") === "true";
+  });
+
+  // Notification center states
+  const [isNotifCenterOpen, setIsNotifCenterOpen] = useState(false);
+  
+  const [notifications, setNotifications] = useState<any[]>(() => {
+    const saved = safeStorage.getItem("bluber_notifications");
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: "welcome",
+        emoji: "🎉",
+        title: "Welcome to BLUBER!",
+        message: "Hyperlocal services are now fully operational in Chamba!",
+        status: "Active",
+        category: "System Updates",
+        createdAt: new Date().toISOString()
+      }
+    ];
+  });
+
+  useEffect(() => {
+    safeStorage.setItem("bluber_notifications", JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    safeStorage.setItem("bluber_v_mart_released", String(isVMartReleased));
+  }, [isVMartReleased]);
+
+  const handleNotifyVMart = () => {
+    if (isNotifiedVMart) return;
+    
+    setIsNotifiedVMart(true);
+    safeStorage.setItem("bluber_v_mart_notified", "true");
+
+    const newNotif = {
+      id: "vmart-waitlist",
+      emoji: "🔔",
+      title: "V-Mart launch registration",
+      message: "You'll be notified when V-Mart launches on BLUBER.",
+      status: "Waiting",
+      category: "Upcoming Features",
+      createdAt: new Date().toISOString()
+    };
+    setNotifications(prev => [newNotif, ...prev.filter(n => n.id !== "vmart-waitlist")]);
+
+    // Slide up fade exit transition delay
+    setTimeout(() => {
+      setShowVMartBanner(false);
+    }, 1200);
   };
+
+  const handleToggleReleaseVMart = () => {
+    setIsVMartReleased(prev => !prev);
+  };
+
+  const handleResetVMartBanner = () => {
+    setIsNotifiedVMart(false);
+    setShowVMartBanner(true);
+    setIsVMartReleased(false);
+    safeStorage.setItem("bluber_v_mart_notified", "false");
+    safeStorage.setItem("bluber_v_mart_released", "false");
+    setNotifications(prev => prev.filter(n => n.id !== "vmart-waitlist"));
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  // Synchronize waitlist notification details based on launch state
+  useEffect(() => {
+    if (isVMartReleased) {
+      setNotifications(prev => {
+        const exists = prev.some(n => n.id === "vmart-waitlist");
+        if (exists) {
+          return prev.map(n => n.id === "vmart-waitlist" ? {
+            ...n,
+            emoji: "🎉",
+            title: "V-Mart is now live!",
+            message: "V-Mart is now live. Tap to start shopping.",
+            status: "Released",
+            category: "Now Live"
+          } : n);
+        } else {
+          return [
+            {
+              id: "vmart-waitlist",
+              emoji: "🎉",
+              title: "V-Mart is now live!",
+              message: "V-Mart is now live. Tap to start shopping.",
+              status: "Released",
+              category: "Now Live",
+              createdAt: new Date().toISOString()
+            },
+            ...prev
+          ];
+        }
+      });
+    } else {
+      if (isNotifiedVMart) {
+        setNotifications(prev => {
+          const exists = prev.some(n => n.id === "vmart-waitlist");
+          if (exists) {
+            return prev.map(n => n.id === "vmart-waitlist" ? {
+              ...n,
+              emoji: "🔔",
+              title: "V-Mart launch registration",
+              message: "You'll be notified when V-Mart launches on BLUBER.",
+              status: "Waiting",
+              category: "Upcoming Features"
+            } : n);
+          } else {
+            return [
+              {
+                id: "vmart-waitlist",
+                emoji: "🔔",
+                title: "V-Mart launch registration",
+                message: "You'll be notified when V-Mart launches on BLUBER.",
+                status: "Waiting",
+                category: "Upcoming Features",
+                createdAt: new Date().toISOString()
+              },
+              ...prev
+            ];
+          }
+        });
+      }
+    }
+  }, [isVMartReleased, isNotifiedVMart]);
 
   // BLUBER Elite Experiences waitlist states
   const [isNotifiedEliteBuddy, setIsNotifiedEliteBuddy] = useState<boolean>(() => {
@@ -198,6 +329,18 @@ export default function App() {
     setEliteBuddyData(data);
     safeStorage.setItem("bluber_elite_buddy_notified", "true");
     safeStorage.setItem("bluber_elite_buddy_data", JSON.stringify(data));
+
+    // Create custom notification in center
+    const newNotif = {
+      id: "friend-waitlist",
+      emoji: "💖",
+      title: "Rent a Friend Vetting Registered",
+      message: "Your companion request is under background vetting. Priority Queue Secured.",
+      status: "Priority",
+      category: "Elite Experiences",
+      createdAt: new Date().toISOString()
+    };
+    setNotifications(prev => [newNotif, ...prev.filter(n => n.id !== "friend-waitlist")]);
   };
 
   // URL routing sync for /ride-booking
@@ -913,9 +1056,11 @@ export default function App() {
                       </div>
 
                       {/* Notification Bell Icon */}
-                      <div className="relative p-2 text-text-primary hover:bg-canvas rounded-full transition-colors cursor-pointer" onClick={() => setAlertMessage("Welcome to BLUBER! Hyperlocal services are now fully operational in Chamba!")}>
-                        <Bell size={22} />
-                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+                      <div className="relative p-2 text-text-primary hover:bg-canvas rounded-full transition-colors cursor-pointer" onClick={() => setIsNotifCenterOpen(true)}>
+                        <Bell size={22} className="text-slate-800" />
+                        {notifications.length > 0 && (
+                          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>
+                        )}
                       </div>
                       
                       {/* Profile Avatar */}
@@ -1059,52 +1204,74 @@ export default function App() {
                   </div>
 
                   {/* 2. V-Mart Coming Soon Compact Announcement Banner */}
-                  <div id="vmart-teaser-banner" className="bg-gradient-to-r from-[#111827] via-[#1E1B4B] to-[#0F172A] text-white rounded-2xl p-4 border border-indigo-500/20 shadow-md relative overflow-hidden text-left mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    {/* Glowing background */}
-                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none"></div>
-                    
-                    <div className="flex items-center gap-3">
-                      {/* V-Mart Premium Logo Representation */}
-                      <div className="bg-white px-2.5 py-1.5 rounded-xl flex items-center gap-0.5 shadow-sm shrink-0 border border-slate-200 select-none">
-                        <span className="text-red-600 font-black text-[13px] tracking-tighter font-sans">V</span>
-                        <span className="text-blue-800 font-extrabold text-[12px] tracking-tight font-sans">Mart</span>
-                      </div>
-                      
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-xs font-black tracking-tight text-white font-sans">V-Mart Coming Soon</h4>
-                          <span className="bg-indigo-500/20 border border-indigo-400/30 text-[#818CF8] px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">
-                            Opening Shortly
-                          </span>
-                        </div>
-                        <p className="text-[10.5px] text-slate-300 leading-tight font-medium font-sans">
-                          Order fashion, household essentials and daily needs directly from BLUBER.
-                        </p>
-                      </div>
-                    </div>
+                  <AnimatePresence>
+                    {showVMartBanner && (
+                      <motion.div
+                        id="vmart-teaser-banner"
+                        initial={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ 
+                          opacity: 0, 
+                          scale: 0.9, 
+                          y: -30, 
+                          transition: { duration: 0.45, ease: "easeOut" } 
+                        }}
+                        className="relative bg-gradient-to-tr from-[#FCFBFF] via-[#F8F4FF] to-[#F3EEFF] rounded-[28px] p-6 border border-purple-100/60 shadow-[0_16px_36px_rgba(139,92,246,0.06)] overflow-hidden text-left mb-6 flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all duration-300"
+                      >
+                        {/* Light bloom backing glow */}
+                        <div className="absolute -top-16 -right-16 w-36 h-36 bg-[#E8DFFF]/40 rounded-full blur-3xl pointer-events-none"></div>
+                        <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-[#E0E7FF]/30 rounded-full blur-3xl pointer-events-none"></div>
 
-                    <button
-                      type="button"
-                      onClick={handleToggleVMartNotification}
-                      className={`shrink-0 text-[10.5px] font-black py-2.5 px-4 rounded-xl transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${
-                        isNotifiedVMart 
-                          ? "bg-emerald-500 text-white shadow-sm" 
-                          : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_4px_12px_rgba(79,70,229,0.3)]"
-                      }`}
-                    >
-                      {isNotifiedVMart ? (
-                        <>
-                          <CheckCircle size={12} className="stroke-[3] text-white" />
-                          <span>You'll Be Notified</span>
-                        </>
-                      ) : (
-                        <>
-                          <Bell size={12} className="text-white" />
-                          <span>Notify Me</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                        <div className="flex items-start sm:items-center gap-4 relative z-10">
+                          {/* V-Mart Premium Logo Representation with custom border and glow */}
+                          <div className="bg-white/80 backdrop-blur-md px-3.5 py-2.5 rounded-[20px] flex items-center justify-center shadow-[0_8px_20px_-4px_rgba(139,92,246,0.12)] shrink-0 border border-purple-100/80 select-none">
+                            <span className="text-red-500 font-extrabold text-[15px] tracking-tighter font-sans">V</span>
+                            <span className="text-indigo-800 font-black text-[14px] tracking-tight font-sans">Mart</span>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-[14px] font-black tracking-tight text-slate-800 font-sans leading-none">V-Mart Coming Soon</h4>
+                              <span className="bg-purple-100/60 border border-purple-200/50 text-[#8B5CF6] px-2.5 py-0.5 rounded-full text-[8px] font-extrabold uppercase tracking-widest leading-none">
+                                Opening Shortly
+                              </span>
+                            </div>
+                            <p className="text-[11.5px] text-slate-500/90 leading-relaxed font-medium font-sans max-w-[270px]">
+                              Order fashion, household essentials and daily needs directly from BLUBER.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Only one clear CTA */}
+                        <button
+                          type="button"
+                          disabled={isNotifiedVMart}
+                          onClick={handleNotifyVMart}
+                          className={`relative shrink-0 overflow-hidden text-xs font-black py-3 px-5 rounded-full transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 border cursor-pointer h-11 shadow-sm select-none z-10 ${
+                            isNotifiedVMart 
+                              ? "bg-[#10B981] text-white border-emerald-500 shadow-emerald-500/10 cursor-not-allowed scale-[0.98]" 
+                              : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white border-purple-500/20 shadow-[0_6px_16px_rgba(139,92,246,0.25)] hover:shadow-[0_8px_22px_rgba(139,92,246,0.35)] hover:-translate-y-0.5"
+                          }`}
+                        >
+                          {/* Shine effect inside button */}
+                          {!isNotifiedVMart && (
+                            <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -skew-x-12 translate-x-[-100%]" style={{ animation: "shimmerLight 3s infinite" }} />
+                          )}
+                          
+                          {isNotifiedVMart ? (
+                            <>
+                              <CheckCircle size={13} className="stroke-[3] text-white" />
+                              <span>You're on the waitlist</span>
+                            </>
+                          ) : (
+                            <>
+                              <Bell size={13} className="text-white shrink-0" />
+                              <span>Notify Me</span>
+                            </>
+                          )}
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Scooty Ride Service Card (Moved above Categories for Primary Action Hierarchy) */}
                   <div id="ride-services-section" className="pt-2 text-left mb-6">
@@ -1213,19 +1380,33 @@ export default function App() {
 
                     <div 
                       onClick={handleOpenEliteWaitlist}
-                      className="bg-gradient-to-br from-[#F5F2FF] via-[#FAF5FF] to-[#FFF0F5] rounded-[28px] p-7 border border-white/60 shadow-[0_20px_48px_-12px_rgba(139,92,246,0.12)] flex flex-col space-y-5 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:-translate-y-1.5 hover:scale-[1.01] hover:shadow-[0_24px_56px_-12px_rgba(139,92,246,0.18)] active:translate-y-0 active:scale-[0.99] group"
+                      className="bg-gradient-to-br from-[#EEF2FF] via-[#FFF3F8] to-[#F1EAFF] animate-gradient-move rounded-[32px] p-7 border border-white/70 shadow-[0_20px_48px_rgba(139,92,246,0.06)] hover:shadow-[0_24px_56px_rgba(139,92,246,0.12)] flex flex-col space-y-5 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:rotate-[0.3deg] hover:scale-[1.01] active:scale-[0.99] group"
                     >
-                      {/* Premium light streak, subtle glass highlights, and ambient lighting */}
-                      <div className="absolute top-0 right-0 w-52 h-52 bg-gradient-to-tr from-purple-400/25 to-pink-400/20 rounded-full blur-3xl pointer-events-none"></div>
-                      <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-indigo-400/15 rounded-full blur-2xl pointer-events-none"></div>
-                      <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-purple-300/10 rounded-full blur-xl pointer-events-none"></div>
+                      {/* Premium light bloom backing glows */}
+                      <div className="absolute -top-12 -right-12 w-64 h-64 bg-pink-300/25 rounded-full blur-3xl pointer-events-none animate-pulse duration-[6000ms]"></div>
+                      <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-purple-300/20 rounded-full blur-2xl pointer-events-none"></div>
+                      <div className="absolute top-1/2 left-1/3 w-40 h-40 bg-blue-300/15 rounded-full blur-3xl pointer-events-none"></div>
 
-                      <div className="flex justify-between items-start gap-4">
+                      {/* Subtle Noise Texture overlay */}
+                      <div className="absolute inset-0 noise-overlay opacity-[0.015] pointer-events-none mix-blend-overlay" />
+
+                      {/* Moving light shimmer refraction sweep */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 translate-x-[-100%] pointer-events-none" style={{ animation: "shimmerLight 5s infinite ease-in-out" }} />
+
+                      {/* Sparkles twinkling */}
+                      <div className="absolute top-12 right-1/3 pointer-events-none animate-[bounce_3s_infinite_ease-in-out]" style={{ animationDelay: "1s" }}>
+                        <Sparkles size={14} className="text-purple-400 opacity-60 animate-pulse" />
+                      </div>
+                      <div className="absolute bottom-20 right-16 pointer-events-none animate-[bounce_4s_infinite_ease-in-out]" style={{ animationDelay: "2.5s" }}>
+                        <Sparkles size={11} className="text-pink-400 opacity-50 animate-pulse" />
+                      </div>
+
+                      <div className="flex justify-between items-start gap-4 relative z-10">
                         <div className="space-y-3">
                           {/* Premium Glass Pill Badge */}
                           <div className="flex">
-                            <span className="inline-flex items-center gap-1.5 bg-white/40 backdrop-blur-md border border-white/50 text-purple-700 px-3 py-1.5 rounded-full text-[9px] font-extrabold uppercase tracking-[0.18em] leading-none shadow-[0_2px_8px_rgba(139,92,246,0.04)]">
-                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+                            <span className="inline-flex items-center gap-1.5 bg-white/45 backdrop-blur-md border border-white/60 text-purple-700 px-3.5 py-1.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-[0.16em] leading-none shadow-[0_4px_12px_rgba(139,92,246,0.04)]">
+                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-ping shrink-0" />
                               Coming Soon
                             </span>
                           </div>
@@ -1238,15 +1419,14 @@ export default function App() {
                           </p>
                         </div>
 
-                        {/* Premium Outline Lifestyle Icon inside Frosted Glass Container with Soft Glow */}
-                        <div className="relative flex items-center justify-center p-3.5 rounded-[22px] bg-white/30 backdrop-blur-md border border-white/50 text-purple-600 shadow-[0_8px_24px_-6px_rgba(139,92,246,0.15)] overflow-hidden transition-all duration-300 group-hover:bg-white/50 group-hover:scale-105 shrink-0">
-                          <div className="absolute inset-0 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                          <Sparkles size={24} className="text-purple-600 relative z-10 transition-transform duration-500 group-hover:rotate-12" />
+                        {/* Premium Frosted Glass Container with Soft Glow */}
+                        <div className="relative flex items-center justify-center p-3.5 rounded-[22px] bg-white/40 backdrop-blur-md border border-white/70 text-purple-600 shadow-[0_8px_24px_-6px_rgba(139,92,246,0.15)] overflow-hidden transition-all duration-300 group-hover:scale-105 shrink-0">
+                          <Users size={22} className="text-purple-600 relative z-10 transition-transform duration-500 group-hover:rotate-6" />
                         </div>
                       </div>
 
-                      {/* Natural information highlights with subtle transparent separators instead of a box */}
-                      <div className="text-[11px] text-slate-700/95 leading-relaxed py-3.5 border-y border-white/30 space-y-3 font-sans">
+                      {/* Natural information highlights with subtle transparent separators */}
+                      <div className="text-[11px] text-slate-700/95 leading-relaxed py-3.5 border-y border-white/30 space-y-3 font-sans relative z-10">
                         <div className="flex items-center gap-2.5">
                           <div className="flex items-center justify-center w-5 h-5 rounded-full bg-white/45 border border-white/50 text-purple-600 shrink-0 shadow-[0_2px_6px_rgba(139,92,246,0.05)]">
                             <span className="text-[10px] font-bold">✓</span>
@@ -1261,7 +1441,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1 gap-4">
+                      <div className="flex items-center justify-between pt-1 gap-4 relative z-10">
                         <div>
                           <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-[0.15em] leading-none">Vetting Status</p>
                           <p className="text-[13px] font-bold text-slate-900 mt-1.5">
@@ -1276,9 +1456,9 @@ export default function App() {
                               e.stopPropagation();
                               handleOpenEliteWaitlist();
                             }}
-                            className="bg-white/50 backdrop-blur-md border border-white/60 hover:bg-white/70 text-purple-700 text-[11px] font-extrabold py-2.5 px-4.5 rounded-full shadow-[0_4px_12px_rgba(139,92,246,0.04)] transition-all flex items-center gap-2 cursor-pointer h-10"
+                            className="relative bg-white/80 backdrop-blur-md border border-purple-200/50 hover:bg-white text-purple-700 text-[11px] font-black py-3 px-5 rounded-full shadow-[0_6px_20px_rgba(139,92,246,0.05)] transition-all flex items-center gap-2 cursor-pointer h-11"
                           >
-                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0"></span>
                             <span>On Waitlist (#247)</span>
                           </button>
                         ) : (
@@ -1288,10 +1468,11 @@ export default function App() {
                               e.stopPropagation();
                               handleOpenEliteWaitlist();
                             }}
-                            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[11px] font-black py-2.5 px-4.5 rounded-full shadow-[0_8px_20px_-4px_rgba(139,92,246,0.2)] hover:shadow-[0_12px_24px_-4px_rgba(139,92,246,0.3)] transition-all flex items-center gap-2 border-none cursor-pointer h-10"
+                            className="relative bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:via-indigo-500 hover:to-purple-500 text-white text-[11px] font-black py-3 px-5.5 rounded-full shadow-[0_8px_24px_rgba(139,92,246,0.2)] hover:shadow-[0_12px_28px_rgba(139,92,246,0.3)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 border-none cursor-pointer h-11 select-none animate-luxury-pulse"
                           >
-                            <span>Notify Me</span>
-                            <ArrowRight size={13} className="stroke-[3]" />
+                            <Sparkles size={12} className="text-white shrink-0 animate-pulse" />
+                            <span>Request Invitation</span>
+                            <ArrowRight size={12} className="stroke-[3] text-white shrink-0" />
                           </button>
                         )}
                       </div>
@@ -1937,6 +2118,18 @@ export default function App() {
           onClose={() => setIsEliteWaitlistOpen(false)} 
           onSubmit={handleJoinEliteWaitlist} 
           initialData={eliteBuddyData} 
+        />
+
+        <NotificationCenter
+          isOpen={isNotifCenterOpen}
+          onClose={() => setIsNotifCenterOpen(false)}
+          notifications={notifications}
+          onClearAll={handleClearAllNotifications}
+          isVMartReleased={isVMartReleased}
+          onToggleReleaseVMart={handleToggleReleaseVMart}
+          onResetVMartBanner={handleResetVMartBanner}
+          isNotifiedVMart={isNotifiedVMart}
+          isNotifiedEliteBuddy={isNotifiedEliteBuddy}
         />
 
         <AuthModal 
