@@ -67,6 +67,7 @@ import { OrdersTab } from "./components/OrdersTab";
 import { getPricingTier, PRICING_TIERS } from "./utils/pricing";
 import { AuthModal } from "./components/AuthModal";
 import { auth, onAuthStateChanged, signOut, getRedirectResult, translateFirebaseAuthError } from "./utils/firebase";
+import { useAuth } from "./utils/AuthContext";
 import {
   ScooterIllustration,
   DeliveryIllustration,
@@ -111,167 +112,47 @@ export default function App() {
     return saved ? Number(saved) : 1250;
   });
 
-  const [user, setUser] = useState<{ uid: string; name: string; email: string; phone: string; photoURL?: string } | null>(() => {
-    const saved = safeStorage.getItem("bluber_auth_user");
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [isAuthInitializing, setIsAuthInitializing] = useState(true);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authError, setAuthError] = useState("");
-  const [pendingAction, setPendingAction] = useState<{ type: string; data?: any } | null>(null);
+  // Consume centralized authentication state
+  const {
+    user,
+    userProfile,
+    isAuthInitializing,
+    isAuthModalOpen,
+    setIsAuthModalOpen,
+    authError,
+    setAuthError,
+    pendingAction,
+    setPendingAction,
+    updateProfile: handleUpdateProfile,
+    logout: handleLogout,
+    handleAuthSuccess,
+    setPendingActionAndOpenAuth
+  } = useAuth();
 
+  // Declaratively trigger pending actions when user successfully signs in
   useEffect(() => {
-    let redirectResolved = false;
-    let authStateResolved = false;
-
-    const checkFinished = () => {
-      if (redirectResolved && authStateResolved) {
-        setIsAuthInitializing(false);
-      }
-    };
-
-    // Check for redirect result upon mount (handles redirects back from mobile Google Sign-In)
-    console.log("[DEBUG] Checking redirect result with getRedirectResult()...");
-    getRedirectResult(auth)
-      .then((result) => {
-        console.log("[DEBUG] getRedirectResult complete. Result exists:", !!result, "User email:", result?.user?.email);
-        if (result && result.user) {
-          const firebaseUser = result.user;
-          const u = {
-            uid: firebaseUser.uid,
-            name: firebaseUser.displayName || firebaseUser.phoneNumber || "Verified User",
-            email: firebaseUser.email || "",
-            phone: firebaseUser.phoneNumber || "",
-            photoURL: firebaseUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${firebaseUser.uid}`
-          };
-          console.log("[DEBUG] Resolved user after redirect:", u);
-          setUser(u);
-          safeStorage.setItem("bluber_auth_user", JSON.stringify(u));
-          setUserProfile({
-            name: u.name,
-            phone: u.phone,
-            email: u.email
-          });
-          setAuthError("");
-          setIsAuthModalOpen(false);
-        }
-      })
-      .catch((err) => {
-        console.error("[DEBUG] Redirect Sign-in error caught on app load:", err);
-        const friendlyMessage = translateFirebaseAuthError(err);
-        setAuthError(friendlyMessage);
-        setIsAuthModalOpen(true); // Automatically open the modal to display the descriptive error
-      })
-      .finally(() => {
-        redirectResolved = true;
-        checkFinished();
-      });
-
-    console.log("[DEBUG] Setting up onAuthStateChanged listener...");
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      console.log("[DEBUG] onAuthStateChanged fired. User object:", firebaseUser ? { uid: firebaseUser.uid, email: firebaseUser.email, name: firebaseUser.displayName } : "null");
-      if (firebaseUser) {
-        const u = {
-          uid: firebaseUser.uid,
-          name: firebaseUser.displayName || firebaseUser.phoneNumber || "Verified User",
-          email: firebaseUser.email || "",
-          phone: firebaseUser.phoneNumber || "",
-          photoURL: firebaseUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${firebaseUser.uid}`
-        };
-        setUser(u);
-        safeStorage.setItem("bluber_auth_user", JSON.stringify(u));
-        setUserProfile({
-          name: u.name,
-          phone: u.phone,
-          email: u.email
-        });
-      } else {
-        setUser(null);
-        safeStorage.removeItem("bluber_auth_user");
-      }
-      authStateResolved = true;
-      checkFinished();
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      console.log("[DEBUG] Executing handleLogout(). Current Firebase user:", auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : "null");
-      await signOut(auth);
-      setUser(null);
-      safeStorage.removeItem("bluber_auth_user");
-      setUserProfile({ name: "", phone: "", email: "" });
-      console.log("[DEBUG] Logout successful. Local state wiped.");
-    } catch (err) {
-      console.error("[DEBUG] Logout error:", err);
-    }
-  };
-
-  const handleUpdateProfile = (profile: { name: string; phone: string; email: string }) => {
-    setUserProfile(profile);
-    if (user) {
-      const updatedUser = {
-        ...user,
-        name: profile.name,
-        email: profile.email,
-        phone: profile.phone
-      };
-      setUser(updatedUser);
-      safeStorage.setItem("bluber_auth_user", JSON.stringify(updatedUser));
-    }
-  };
-
-  const handleOpenEliteWaitlist = () => {
-    if (!user) {
-      setPendingAction({ type: "JOIN_WAITLIST" });
-      setIsAuthModalOpen(true);
-      return;
-    }
-    setIsEliteWaitlistOpen(true);
-  };
-
-  const setPendingActionAndOpenAuth = (act: any) => {
-    setPendingAction(act);
-    setIsAuthModalOpen(true);
-  };
-
-  const handleAuthSuccess = (authUser: any) => {
-    setIsAuthModalOpen(false);
-    setUser(authUser);
-    safeStorage.setItem("bluber_auth_user", JSON.stringify(authUser));
-    setUserProfile({
-      name: authUser.name,
-      phone: authUser.phone,
-      email: authUser.email
-    });
-    
-    // Now trigger the pendingAction if there is one!
-    if (pendingAction) {
+    if (user && pendingAction) {
       const { type, data } = pendingAction;
       setPendingAction(null);
       if (type === "CUSTOM_ORDER" && data) {
-        handleAddCustomOrder(data.desc, authUser.name, authUser.phone);
+        handleAddCustomOrder(data.desc, user.name, user.phone);
       } else if (type === "JOIN_WAITLIST") {
         setIsEliteWaitlistOpen(true);
       } else if (type === "BOOK_RIDE") {
         setIsRiding(true);
       } else if (type === "CHECKOUT") {
-        // Handled naturally by cart or shop detail being logged in now
+        // Handled naturally by app redirect or checkout flow
       }
     }
-  };
+  }, [user, pendingAction]);
 
-  const [userProfile, setUserProfile] = useState<{ name: string; phone: string; email: string }>(() => {
-    const saved = safeStorage.getItem("bluber_profile");
-    if (saved) return JSON.parse(saved);
-    const savedAuth = safeStorage.getItem("bluber_auth_user");
-    if (savedAuth) {
-      const u = JSON.parse(savedAuth);
-      return { name: u.name, phone: u.phone, email: u.email };
+  const handleOpenEliteWaitlist = () => {
+    if (!user) {
+      setPendingActionAndOpenAuth({ type: "JOIN_WAITLIST" });
+      return;
     }
-    return { name: "", phone: "", email: "" };
-  });
+    setIsEliteWaitlistOpen(true);
+  };
 
   const [savedAddresses, setSavedAddresses] = useState<Array<{ id: string; type: string; label: string; detail: string }>>(() => {
     const saved = safeStorage.getItem("bluber_addresses");
@@ -677,9 +558,11 @@ export default function App() {
     }
   };
 
-  const handleAddCustomOrder = (desc: string, customerName = "Nitish Kaushal", phoneNumber = "+91-98782-99015") => {
+  const handleAddCustomOrder = (desc: string, customerName = "", phoneNumber = "") => {
+    const finalCustomerName = customerName || user?.name || "Verified Resident";
+    const finalPhoneNumber = phoneNumber || user?.phone || "+91-98782-99015";
     if (!user) {
-      setPendingAction({ type: "CUSTOM_ORDER", data: { desc, customerName, phoneNumber } });
+      setPendingAction({ type: "CUSTOM_ORDER", data: { desc, customerName: finalCustomerName, phoneNumber: finalPhoneNumber } });
       setIsAuthModalOpen(true);
       return;
     }
@@ -707,8 +590,8 @@ export default function App() {
       ];
       const newCust = {
         id: `CUST-${Math.floor(100 + Math.random() * 900)}`,
-        customerName: customerName || "Guest User",
-        phoneNumber: phoneNumber || "+91-98782-99015",
+        customerName: finalCustomerName,
+        phoneNumber: finalPhoneNumber,
         description: desc,
         status: "Pending",
         timestamp: "Today, " + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
@@ -1780,6 +1663,7 @@ export default function App() {
 
                     <CustomRequestsHomeWidget 
                       onAddCustomRequest={handleAddCustomOrder}
+                      user={user}
                     />
 
                     <div id="ride-demand-feedback">

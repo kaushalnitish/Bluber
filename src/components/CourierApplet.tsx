@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   ArrowLeft, 
   Package, 
@@ -51,7 +51,7 @@ export const CourierApplet: React.FC<CourierAppletProps> = ({
   const [form, setForm] = useState<CourierState>({
     pickup: CHAMBA_LANDMARKS[0],
     dropoff: CHAMBA_LANDMARKS[1],
-    senderName: "Guest Chamba Travel Group",
+    senderName: user ? (user.name || "Verified Resident") : "Guest Chamba Travel Group",
     receiverName: "",
     receiverPhone: "",
     packageType: "Apples",
@@ -59,6 +59,15 @@ export const CourierApplet: React.FC<CourierAppletProps> = ({
     notes: "",
     price: 70
   });
+
+  useEffect(() => {
+    if (user) {
+      setForm(prev => ({
+        ...prev,
+        senderName: user.name || "Verified Resident"
+      }));
+    }
+  }, [user]);
 
   const [step, setStep] = useState<"idle" | "searching" | "success">("idle");
   const [assignedRider, setAssignedRider] = useState("");

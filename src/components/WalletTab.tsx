@@ -14,9 +14,10 @@ import {
 interface WalletTabProps {
   balance: number;
   onAddBalance: (amount: number) => void;
+  user?: any;
 }
 
-export const WalletTab: React.FC<WalletTabProps> = ({ balance, onAddBalance }) => {
+export const WalletTab: React.FC<WalletTabProps> = ({ balance, onAddBalance, user }) => {
   const [topupAmount, setTopupAmount] = useState<number>(500);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -55,7 +56,7 @@ export const WalletTab: React.FC<WalletTabProps> = ({ balance, onAddBalance }) =
         <div className="flex justify-between items-start mb-6">
           <div>
             <span className="text-[10px] uppercase font-bold tracking-widest text-[#a3e635]">Personal Card</span>
-            <h3 className="text-sm font-semibold tracking-wide opacity-90 mt-1">GUEST TRAVELER</h3>
+            <h3 className="text-sm font-semibold tracking-wide opacity-90 mt-1">{user ? user.name.toUpperCase() : "GUEST TRAVELER"}</h3>
           </div>
           <div className="bg-white/20 p-2.5 rounded-xl">
             <Coins size={22} className="text-[#a3e635]" />

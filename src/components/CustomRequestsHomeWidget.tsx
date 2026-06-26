@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Send,  
   Sparkles, 
@@ -9,16 +9,25 @@ import {
 
 interface CustomRequestsHomeWidgetProps {
   onAddCustomRequest: (desc: string, name: string, phone: string) => void;
+  user?: any;
 }
 
 export const CustomRequestsHomeWidget: React.FC<CustomRequestsHomeWidgetProps> = ({
-  onAddCustomRequest
+  onAddCustomRequest,
+  user
 }) => {
   const [description, setDescription] = useState("");
-  const [customerName, setCustomerName] = useState("Nitish Kaushal");
-  const [phoneNumber, setPhoneNumber] = useState("+91-98782-99015");
+  const [customerName, setCustomerName] = useState(user ? (user.name || "Verified Resident") : "Nitish Kaushal");
+  const [phoneNumber, setPhoneNumber] = useState(user ? (user.phone || "+91-98782-99015") : "+91-98782-99015");
   const [submitted, setSubmitted] = useState(false);
   const [errorWord, setErrorWord] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      if (user.name) setCustomerName(user.name);
+      if (user.phone) setPhoneNumber(user.phone);
+    }
+  }, [user]);
 
   const examples = [
     { label: "🍔 Specific Restaurant Food", desc: "Need food from a specific restaurant in upper Chamba" },
