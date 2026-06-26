@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   CheckCircle,
   MapPin,
@@ -223,17 +224,72 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                 <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-primary px-2.5 py-1 rounded-full border border-emerald-500/10">
                   Prepaid Order Real-Time
                 </span>
-                <h3 className="text-sm font-black text-text-primary mt-2">
-                  {activeOrderTrack.status === "Order Confirmed" && "✓ Store Confirming Receipt"}
-                  {activeOrderTrack.status === "Looking For Rider" && "🔍 Looking For Runner Nearby"}
-                  {activeOrderTrack.status === "Rider Assigned" && "🤝 Assisting Assigned Runner"}
-                  {activeOrderTrack.status === "Rider Accepted" && "🛵 Captain Heading to Merchant"}
-                  {activeOrderTrack.status === "Rider Reached Store" && "🥘 Captain Assembling Cargo at Store"}
-                  {activeOrderTrack.status === "Order Picked Up" && "📦 Cargo Sourced & Verified"}
-                  {activeOrderTrack.status === "Out For Delivery" && `🚴 Moving on Road • ETA ${etaRemaining} min`}
-                  {activeOrderTrack.status === "Arriving Soon" && "🔔 Captain Rohan is at gate ring!"}
-                  {activeOrderTrack.status === "Delivered" && "🛍 delivered with smile"}
-                </h3>
+                <div className="min-h-[28px] mt-2 flex items-center">
+                  <AnimatePresence mode="wait">
+                    <motion.h3
+                      key={activeOrderTrack.status}
+                      initial={{ opacity: 0, x: -10, scale: 0.95 }}
+                      animate={{
+                        opacity: 1,
+                        x: 0,
+                        scale: 1,
+                        transition: {
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 20
+                        },
+                        ...(activeOrderTrack.status === "Looking For Rider" ? {
+                          scale: [1, 1.03, 1],
+                          opacity: [0.85, 1, 0.85],
+                          transition: {
+                            scale: { repeat: Infinity, duration: 1.5, ease: "easeInOut" },
+                            opacity: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
+                          }
+                        } : activeOrderTrack.status === "Rider Accepted" ? {
+                          scale: [1, 1.08, 1],
+                          filter: ["brightness(1)", "brightness(1.2)", "brightness(1)"],
+                          transition: {
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 15,
+                            duration: 0.8
+                          }
+                        } : {})
+                      }}
+                      exit={{ opacity: 0, x: 10, scale: 0.95, transition: { duration: 0.15 } }}
+                      className="text-sm font-black text-text-primary flex items-center gap-1.5"
+                    >
+                      {activeOrderTrack.status === "Order Confirmed" && "✓ Store Confirming Receipt"}
+                      {activeOrderTrack.status === "Looking For Rider" && (
+                        <span className="flex items-center gap-1.5 text-amber-600">
+                          <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                          </span>
+                          🔍 Looking For Runner Nearby
+                        </span>
+                      )}
+                      {activeOrderTrack.status === "Rider Assigned" && "🤝 Assisting Assigned Runner"}
+                      {activeOrderTrack.status === "Rider Accepted" && (
+                        <span className="flex items-center gap-1.5 text-primary">
+                          <motion.span 
+                            animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
+                            transition={{ duration: 0.6, repeat: 2, repeatDelay: 3 }}
+                            className="inline-block"
+                          >
+                            🛵
+                          </motion.span>
+                          Captain Heading to Merchant
+                        </span>
+                      )}
+                      {activeOrderTrack.status === "Rider Reached Store" && "🥘 Captain Assembling Cargo at Store"}
+                      {activeOrderTrack.status === "Order Picked Up" && "📦 Cargo Sourced & Verified"}
+                      {activeOrderTrack.status === "Out For Delivery" && `🚴 Moving on Road • ETA ${etaRemaining} min`}
+                      {activeOrderTrack.status === "Arriving Soon" && "🔔 Captain Rohan is at gate ring!"}
+                      {activeOrderTrack.status === "Delivered" && "🛍 delivered with smile"}
+                    </motion.h3>
+                  </AnimatePresence>
+                </div>
                 <p className="text-[11px] text-text-secondary mt-1">Order Ref: <strong>{activeOrderTrack.id}</strong> • From {activeOrderTrack.merchantName}</p>
               </div>
               <span className="text-xs font-mono font-bold bg-canvas px-2.5 py-1 rounded-lg text-text-secondary">
@@ -409,25 +465,46 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   if (idx > currentStepIdx + 1 && !isDone) return null; // Only keep next incoming step visible to maintain compact visual size
 
                   return (
-                    <div key={step.key} className="relative flex gap-3 text-xs leading-none">
+                    <motion.div 
+                      key={step.key} 
+                      layout
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                      className="relative flex gap-3 text-xs leading-none"
+                    >
                       {/* Circle marker */}
-                      <div className={`absolute -left-5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all ${
-                        isDone 
-                          ? "bg-primary border-primary text-white" 
-                          : isActive 
-                          ? "bg-white border-primary text-primary shadow-xs scale-110" 
-                          : "bg-white border-border-custom text-text-secondary"
-                      }`}>
+                      <motion.div 
+                        animate={isActive ? {
+                          scale: [1, 1.25, 1],
+                          borderColor: ["#1E6B3D", "#10B981", "#1E6B3D"],
+                          transition: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+                        } : {}}
+                        className={`absolute -left-5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isDone 
+                            ? "bg-[#1E6B3D] border-[#1E6B3D] text-white" 
+                            : isActive 
+                            ? "bg-white border-[#1E6B3D] text-[#1E6B3D] shadow-xs" 
+                            : "bg-white border-border-custom text-text-secondary"
+                        }`}
+                      >
                         {isDone && <Check size={8} strokeWidth={4} />}
-                      </div>
+                      </motion.div>
 
                       <div className="pl-1 text-left">
-                        <p className={`font-black text-[11px] ${isActive ? "text-primary text-[11.5px]" : isDone ? "text-text-primary" : "text-text-secondary"}`}>
+                        <motion.p 
+                          animate={isActive ? {
+                            color: ["#1E6B3D", "#10B981", "#1E6B3D"],
+                            transition: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+                          } : {}}
+                          className={`font-black text-[11px] ${isActive ? "text-[#1E6B3D] text-[11.5px]" : isDone ? "text-text-primary" : "text-text-secondary"}`}
+                        >
                           {step.label} {isActive && "• Live Progress"}
-                        </p>
+                        </motion.p>
                         <p className="text-[9px] text-text-secondary mt-0.5">{step.desc}</p>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
