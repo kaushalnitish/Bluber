@@ -33,7 +33,9 @@ import {
   Pizza,
   Coffee,
   Cookie,
-  Heart
+  Heart,
+  ShieldCheck,
+  Lock
 } from "lucide-react";
 
 import { 
@@ -1203,279 +1205,285 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 2. V-Mart Coming Soon Compact Announcement Banner */}
-                  <AnimatePresence>
-                    {showVMartBanner && (
-                      <motion.div
-                        id="vmart-teaser-banner"
-                        initial={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ 
-                          opacity: 0, 
-                          scale: 0.9, 
-                          y: -30, 
-                          transition: { duration: 0.45, ease: "easeOut" } 
-                        }}
-                        className="relative bg-gradient-to-tr from-[#FCFBFF] via-[#F8F4FF] to-[#F3EEFF] rounded-[28px] p-6 border border-purple-100/60 shadow-[0_16px_36px_rgba(139,92,246,0.06)] overflow-hidden text-left mb-6 flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all duration-300"
-                      >
-                        {/* Light bloom backing glow */}
-                        <div className="absolute -top-16 -right-16 w-36 h-36 bg-[#E8DFFF]/40 rounded-full blur-3xl pointer-events-none"></div>
-                        <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-[#E0E7FF]/30 rounded-full blur-3xl pointer-events-none"></div>
-
-                        <div className="flex items-start sm:items-center gap-4 relative z-10">
-                          {/* V-Mart Premium Logo Representation with custom border and glow */}
-                          <div className="bg-white/80 backdrop-blur-md px-3.5 py-2.5 rounded-[20px] flex items-center justify-center shadow-[0_8px_20px_-4px_rgba(139,92,246,0.12)] shrink-0 border border-purple-100/80 select-none">
-                            <span className="text-red-500 font-extrabold text-[15px] tracking-tighter font-sans">V</span>
-                            <span className="text-indigo-800 font-black text-[14px] tracking-tight font-sans">Mart</span>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="text-[14px] font-black tracking-tight text-slate-800 font-sans leading-none">V-Mart Coming Soon</h4>
-                              <span className="bg-purple-100/60 border border-purple-200/50 text-[#8B5CF6] px-2.5 py-0.5 rounded-full text-[8px] font-extrabold uppercase tracking-widest leading-none">
-                                Opening Shortly
-                              </span>
-                            </div>
-                            <p className="text-[11.5px] text-slate-500/90 leading-relaxed font-medium font-sans max-w-[270px]">
-                              Order fashion, household essentials and daily needs directly from BLUBER.
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Only one clear CTA */}
-                        <button
-                          type="button"
-                          disabled={isNotifiedVMart}
-                          onClick={handleNotifyVMart}
-                          className={`relative shrink-0 overflow-hidden text-xs font-black py-3 px-5 rounded-full transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 border cursor-pointer h-11 shadow-sm select-none z-10 ${
-                            isNotifiedVMart 
-                              ? "bg-[#10B981] text-white border-emerald-500 shadow-emerald-500/10 cursor-not-allowed scale-[0.98]" 
-                              : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white border-purple-500/20 shadow-[0_6px_16px_rgba(139,92,246,0.25)] hover:shadow-[0_8px_22px_rgba(139,92,246,0.35)] hover:-translate-y-0.5"
-                          }`}
-                        >
-                          {/* Shine effect inside button */}
-                          {!isNotifiedVMart && (
-                            <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -skew-x-12 translate-x-[-100%]" style={{ animation: "shimmerLight 3s infinite" }} />
-                          )}
-                          
-                          {isNotifiedVMart ? (
-                            <>
-                              <CheckCircle size={13} className="stroke-[3] text-white" />
-                              <span>You're on the waitlist</span>
-                            </>
-                          ) : (
-                            <>
-                              <Bell size={13} className="text-white shrink-0" />
-                              <span>Notify Me</span>
-                            </>
-                          )}
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Scooty Ride Service Card (Moved above Categories for Primary Action Hierarchy) */}
-                  <div id="ride-services-section" className="pt-2 text-left mb-6">
-                    <div 
-                      onClick={() => {
-                        setIsEliteRide(true);
-                        setIsRiding(true);
-                      }}
-                      className="bg-gradient-to-br from-neutral-900 via-[#1E293B] to-neutral-950 text-white rounded-[32px] p-6 border border-[#10B981]/20 shadow-[0_20px_40px_rgba(16,185,129,0.07)] flex flex-col space-y-4 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:-translate-y-1 hover:scale-[1.01] active:translate-y-0 active:scale-[0.99] hover:shadow-[0_24px_50px_rgba(16,185,129,0.12)] hover:border-[#10B981]/35 group"
-                    >
-                      {/* Premium light streak & soft ambient lighting */}
-                      <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/15 transition-all"></div>
-                      <div className="absolute inset-0 bg-white/[0.01] pointer-events-none"></div>
-
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-400/20 text-[#34D399] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider">
-                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                            24×7 Available
-                          </span>
-                          <h4 className="text-[17px] font-black text-white tracking-tight leading-tight font-sans">
-                            24×7 Scooty Ride Service
-                          </h4>
-                          <p className="text-[11.5px] text-slate-300 leading-relaxed font-sans max-w-[240px]">
-                            Fast, affordable and reliable rides across Chamba.
-                          </p>
-                        </div>
-                        <div className="relative flex items-center justify-center p-3.5 rounded-[22px] bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/60 shadow-[0_8px_20px_rgba(0,0,0,0.3)] shadow-emerald-500/[0.06] backdrop-blur-md overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-emerald-500/30 group-hover:shadow-emerald-500/10">
-                          {/* Soft internal gradient glow */}
-                          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 via-transparent to-transparent opacity-60"></div>
-                          <svg 
-                            width="28" 
-                            height="28" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            className="text-emerald-400 drop-shadow-[0_2px_8px_rgba(52,211,153,0.3)] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-105"
-                          >
-                            {/* Rear Wheel */}
-                            <circle cx="6" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            <circle cx="6" cy="17" r="0.75" fill="currentColor" />
-                            
-                            {/* Front Wheel */}
-                            <circle cx="18" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            <circle cx="18" cy="17" r="0.75" fill="currentColor" />
-                            
-                            {/* Floorboard / Deck */}
-                            <path d="M8.5 17h6.5c0.8 0 1.2-0.4 1.2-1.2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            
-                            {/* Chassis / Body */}
-                            <path d="M6 14.5c0-2.5 1.5-3.5 3.5-3.5h3c1 0 1.5 0.5 1.5 1.5v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            
-                            {/* Premium Seat */}
-                            <path d="M7.5 11h4.5c0.8 0 1.2-0.4 1.2-1v-0.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                            
-                            {/* Steering Fork & Front Fender */}
-                            <path d="M18 14.5l-2.5-7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            
-                            {/* Front Cowl & Handlebar */}
-                            <path d="M15.5 7h-2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M12.5 6h4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
-                      </div>
-                      
-                      <div className="text-[10.5px] text-slate-400 leading-relaxed bg-slate-900/40 p-3 rounded-2xl border border-white/[0.03] space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#34D399] font-bold">✓</span>
-                          <span><strong>Availability:</strong> 24 Hours, 7 Days A Week</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <span className="text-[#34D399] font-bold mt-0.5">✓</span>
-                          <span><strong>Coverage:</strong> Quick transit within Chamba municipal limits.</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-white/[0.06] mt-1 gap-4">
-                        <div>
-                          <p className="text-[9px] text-[#34D399] font-black uppercase tracking-widest leading-none">Affordable Base Price</p>
-                          <p className="text-[18px] font-black text-white mt-1.5">₹40 <span className="text-[11px] text-slate-400 font-medium">/ KM</span></p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsEliteRide(true);
-                            setIsRiding(true);
-                          }}
-                          className="bg-[#10B981] hover:bg-[#34D399] text-neutral-950 text-[11px] font-black py-3 px-5 rounded-2xl shadow-[0_4px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.4)] transition-all flex items-center gap-2 border-none cursor-pointer h-11"
-                        >
-                          <span>Book Scooty Ride</span>
-                          <ArrowRight size={13} className="stroke-[3]" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* BLUBER Elite Experiences Section */}
-                  <div id="elite-experiences-section" className="pt-2 text-left mb-6">
+                  {/* ✨ BLUBER Experiences Section */}
+                  <div id="bluber-experiences-section" className="pt-2 text-left mb-6">
                     <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-sm font-black text-text-primary tracking-tight font-sans">✨ BLUBER Elite Experiences</h3>
+                      <h3 className="text-sm font-black text-text-primary tracking-tight font-sans">✨ BLUBER Experiences</h3>
                       <span className="text-[8.5px] font-extrabold tracking-[0.15em] uppercase text-slate-400 bg-slate-100 border border-slate-200/50 px-2.5 py-0.5 rounded-full font-sans">
-                        Invitation Only
+                        Vetting Open
                       </span>
                     </div>
 
-                    <div 
-                      onClick={handleOpenEliteWaitlist}
-                      className="bg-gradient-to-br from-[#EEF2FF] via-[#FFF3F8] to-[#F1EAFF] animate-gradient-move rounded-[32px] p-7 border border-white/70 shadow-[0_20px_48px_rgba(139,92,246,0.06)] hover:shadow-[0_24px_56px_rgba(139,92,246,0.12)] flex flex-col space-y-5 relative overflow-hidden text-left cursor-pointer transition-all duration-300 transform-gpu hover:rotate-[0.3deg] hover:scale-[1.01] active:scale-[0.99] group"
-                    >
-                      {/* Premium light bloom backing glows */}
-                      <div className="absolute -top-12 -right-12 w-64 h-64 bg-pink-300/25 rounded-full blur-3xl pointer-events-none animate-pulse duration-[6000ms]"></div>
-                      <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-purple-300/20 rounded-full blur-2xl pointer-events-none"></div>
-                      <div className="absolute top-1/2 left-1/3 w-40 h-40 bg-blue-300/15 rounded-full blur-3xl pointer-events-none"></div>
-
-                      {/* Subtle Noise Texture overlay */}
-                      <div className="absolute inset-0 noise-overlay opacity-[0.015] pointer-events-none mix-blend-overlay" />
-
-                      {/* Moving light shimmer refraction sweep */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 translate-x-[-100%] pointer-events-none" style={{ animation: "shimmerLight 5s infinite ease-in-out" }} />
-
-                      {/* Sparkles twinkling */}
-                      <div className="absolute top-12 right-1/3 pointer-events-none animate-[bounce_3s_infinite_ease-in-out]" style={{ animationDelay: "1s" }}>
-                        <Sparkles size={14} className="text-purple-400 opacity-60 animate-pulse" />
-                      </div>
-                      <div className="absolute bottom-20 right-16 pointer-events-none animate-[bounce_4s_infinite_ease-in-out]" style={{ animationDelay: "2.5s" }}>
-                        <Sparkles size={11} className="text-pink-400 opacity-50 animate-pulse" />
-                      </div>
-
-                      <div className="flex justify-between items-start gap-4 relative z-10">
-                        <div className="space-y-3">
-                          {/* Premium Glass Pill Badge */}
-                          <div className="flex">
-                            <span className="inline-flex items-center gap-1.5 bg-white/45 backdrop-blur-md border border-white/60 text-purple-700 px-3.5 py-1.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-[0.16em] leading-none shadow-[0_4px_12px_rgba(139,92,246,0.04)]">
-                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-ping shrink-0" />
-                              Coming Soon
-                            </span>
-                          </div>
-                          
-                          <h4 className="text-[19px] font-black text-slate-900 tracking-tight leading-none font-sans flex items-center gap-2">
-                            Rent a Friend
-                          </h4>
-                          <p className="text-[12px] text-slate-700/90 leading-relaxed font-sans max-w-[275px]">
-                            Find a verified companion for shopping, cafés, events, local exploration and everyday outings.
-                          </p>
-                        </div>
-
-                        {/* Premium Frosted Glass Container with Soft Glow */}
-                        <div className="relative flex items-center justify-center p-3.5 rounded-[22px] bg-white/40 backdrop-blur-md border border-white/70 text-purple-600 shadow-[0_8px_24px_-6px_rgba(139,92,246,0.15)] overflow-hidden transition-all duration-300 group-hover:scale-105 shrink-0">
-                          <Users size={22} className="text-purple-600 relative z-10 transition-transform duration-500 group-hover:rotate-6" />
-                        </div>
-                      </div>
-
-                      {/* Natural information highlights with subtle transparent separators */}
-                      <div className="text-[11px] text-slate-700/95 leading-relaxed py-3.5 border-y border-white/30 space-y-3 font-sans relative z-10">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-white/45 border border-white/50 text-purple-600 shrink-0 shadow-[0_2px_6px_rgba(139,92,246,0.05)]">
-                            <span className="text-[10px] font-bold">✓</span>
-                          </div>
-                          <span><strong>Vetted Companions:</strong> Background-verified, respectful, smart, and friendly local partners.</span>
-                        </div>
-                        <div className="flex items-start gap-2.5">
-                          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-white/45 border border-white/50 text-purple-600 shrink-0 shadow-[0_2px_6px_rgba(139,92,246,0.05)] mt-0.5">
-                            <span className="text-[10px] font-bold">✓</span>
-                          </div>
-                          <span><strong>Ultimate Discretion:</strong> Highly professional, secure, and completely private helper service.</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1 gap-4 relative z-10">
-                        <div>
-                          <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-[0.15em] leading-none">Vetting Status</p>
-                          <p className="text-[13px] font-bold text-slate-900 mt-1.5">
-                            {isNotifiedEliteBuddy ? "Priority Queue Secured" : "Applications Open"}
-                          </p>
-                        </div>
-
-                        {isNotifiedEliteBuddy ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEliteWaitlist();
+                    <div className="flex flex-col gap-4">
+                      {/* Card 1: V-Mart Coming Soon Compact Announcement Banner */}
+                      <AnimatePresence>
+                        {showVMartBanner && (
+                          <motion.div
+                            id="vmart-teaser-banner"
+                            initial={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ 
+                              opacity: 0, 
+                              scale: 0.9, 
+                              y: -30, 
+                              transition: { duration: 0.45, ease: "easeOut" } 
                             }}
-                            className="relative bg-white/80 backdrop-blur-md border border-purple-200/50 hover:bg-white text-purple-700 text-[11px] font-black py-3 px-5 rounded-full shadow-[0_6px_20px_rgba(139,92,246,0.05)] transition-all flex items-center gap-2 cursor-pointer h-11"
-                          >
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0"></span>
-                            <span>On Waitlist (#247)</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEliteWaitlist();
+                            className="relative rounded-[28px] p-5 border border-purple-100/60 shadow-[0_16px_36px_rgba(139,92,246,0.06)] overflow-hidden text-left flex flex-col gap-4 transition-all duration-300"
+                            style={{
+                              background: 'radial-gradient(circle at 80% 20%, #FFF4FC 0%, transparent 50%), radial-gradient(circle at 10% 90%, #E8DFFF 0%, transparent 60%), linear-gradient(135deg, #FBF9FF 0%, #F5EDFF 100%)',
                             }}
-                            className="relative bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:via-indigo-500 hover:to-purple-500 text-white text-[11px] font-black py-3 px-5.5 rounded-full shadow-[0_8px_24px_rgba(139,92,246,0.2)] hover:shadow-[0_12px_28px_rgba(139,92,246,0.3)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 border-none cursor-pointer h-11 select-none animate-luxury-pulse"
                           >
-                            <Sparkles size={12} className="text-white shrink-0 animate-pulse" />
-                            <span>Request Invitation</span>
-                            <ArrowRight size={12} className="stroke-[3] text-white shrink-0" />
-                          </button>
+                            {/* Moving light shimmer refraction sweep */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent skew-x-12 translate-x-[-100%] pointer-events-none" style={{ animation: "shimmerLight 5s infinite ease-in-out" }} />
+                            
+                            <div className="grid grid-cols-[1fr_auto] gap-4 items-center relative z-10">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                  {/* V-Mart compact Logo Representation */}
+                                  <div className="bg-white/90 backdrop-blur-md px-2 py-1 rounded-xl flex items-center justify-center shadow-sm border border-purple-100 select-none">
+                                    <span className="text-red-500 font-extrabold text-[12px] tracking-tighter font-sans leading-none">V</span>
+                                    <span className="text-indigo-800 font-black text-[11px] tracking-tight font-sans leading-none">Mart</span>
+                                  </div>
+                                  <span className="bg-purple-100/60 border border-purple-200/50 text-[#8B5CF6] px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase tracking-widest leading-none">
+                                    Opening Shortly
+                                  </span>
+                                </div>
+                                
+                                <h4 className="text-[16px] font-black tracking-tight text-slate-800 font-sans leading-tight">V-Mart Coming Soon</h4>
+                                <p className="text-[11px] text-slate-500 leading-relaxed font-semibold font-sans max-w-[210px]">
+                                  Order fashion, household essentials and daily needs directly from BLUBER.
+                                </p>
+                              </div>
+
+                              {/* Right Column: Beautiful compact 3D Shopping Bag Illustration */}
+                              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shadow-md border border-white/40 bg-gradient-to-tr from-white/10 to-purple-100/30 shrink-0">
+                                <img 
+                                  src="/src/assets/images/vmart_bag_3d_1782482291086.jpg" 
+                                  alt="V-Mart Premium Bag" 
+                                  className="w-full h-full object-cover select-none"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none" />
+                              </div>
+                            </div>
+
+                            {/* Footer with aligned CTA */}
+                            <div className="flex justify-between items-center pt-3 border-t border-purple-100/40 relative z-10">
+                              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold font-sans">
+                                <Bell size={11} className="text-[#8B5CF6]" />
+                                <span>Notify when live!</span>
+                              </div>
+
+                              <motion.button
+                                type="button"
+                                disabled={isNotifiedVMart}
+                                onClick={handleNotifyVMart}
+                                whileHover={!isNotifiedVMart ? { scale: 1.03 } : {}}
+                                whileTap={!isNotifiedVMart ? { scale: 0.97 } : {}}
+                                className={`relative h-9 px-4 rounded-full text-[10px] font-black transition-all duration-300 flex items-center justify-center gap-1.5 border select-none ${
+                                  isNotifiedVMart 
+                                    ? "bg-[#10B981] text-white border-emerald-500 shadow-emerald-500/10 cursor-not-allowed" 
+                                    : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white border-purple-500/20 shadow-[0_4px_12px_rgba(139,92,246,0.15)] hover:shadow-[0_6px_16px_rgba(139,92,246,0.25)] cursor-pointer"
+                                }`}
+                              >
+                                {isNotifiedVMart ? (
+                                  <>
+                                    <CheckCircle size={11} className="stroke-[3] text-white" />
+                                    <span>On Waitlist</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Bell size={11} className="text-white shrink-0 animate-pulse" />
+                                    <span>Notify Me</span>
+                                  </>
+                                )}
+                              </motion.button>
+                            </div>
+                          </motion.div>
                         )}
-                      </div>
+                      </AnimatePresence>
+
+                      {/* Card 2: Rent a Friend (Redesigned to be highly compact, luxury, elegant) */}
+                      <motion.div 
+                        onClick={handleOpenEliteWaitlist}
+                        whileHover={{ scale: 1.01 }}
+                        className="relative rounded-[28px] overflow-hidden p-5 flex flex-col gap-4 text-left cursor-pointer transition-all duration-500 border border-white/10 group shadow-[0_20px_48px_rgba(0,0,0,0.25),_inset_0_1px_0_rgba(255,255,255,0.15)]"
+                        style={{
+                          background: 'radial-gradient(circle at 80% 20%, #F4B8FF 0%, transparent 60%), radial-gradient(circle at 15% 85%, #24164B 0%, transparent 70%), linear-gradient(135deg, #4F2DAF 0%, #7E5CFF 100%)',
+                        }}
+                      >
+                        {/* Subtle Noise Texture overlay */}
+                        <div className="absolute inset-0 noise-overlay opacity-[0.02] pointer-events-none mix-blend-overlay" />
+
+                        {/* Moving light shimmer refraction sweep */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 translate-x-[-100%] pointer-events-none" style={{ animation: "shimmerLight 6s infinite ease-in-out" }} />
+
+                        {/* Sparkles twinkling */}
+                        <div className="absolute top-4 left-1/2 text-[#F4B8FF]/40 pointer-events-none select-none animate-pulse">
+                          <Sparkles size={12} />
+                        </div>
+
+                        <div className="grid grid-cols-[1fr_auto] gap-4 items-center relative z-10">
+                          <div className="space-y-1.5">
+                            <div className="flex">
+                              <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-xl border border-white/10 text-[#F4B8FF] px-2.5 py-1 rounded-full text-[8.5px] font-extrabold uppercase tracking-widest leading-none">
+                                <span className="w-1 h-1 bg-pink-400 rounded-full animate-pulse" />
+                                Coming Soon
+                              </span>
+                            </div>
+
+                            <h4 className="text-[16px] font-black tracking-tight text-white font-sans leading-tight filter drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+                              Rent a Friend
+                            </h4>
+                            <p className="text-[11px] text-purple-100/80 leading-relaxed font-semibold font-sans max-w-[210px]">
+                              Find a verified companion for shopping, cafés, events, and everyday outings.
+                            </p>
+
+                            {/* Feature Blocks Compact inline/row list */}
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              <span className="inline-flex items-center gap-1.5 bg-white/[0.05] text-purple-100 text-[9.5px] font-semibold px-2 py-1 rounded-xl border border-white/[0.05]">
+                                <ShieldCheck size={11} className="text-[#F4B8FF]" /> Verified Companions
+                              </span>
+                              <span className="inline-flex items-center gap-1.5 bg-white/[0.05] text-purple-100 text-[9.5px] font-semibold px-2 py-1 rounded-xl border border-white/[0.05]">
+                                <Lock size={11} className="text-[#F4B8FF]" /> Private & Secure
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Right Column: Beautiful compact 3D Companion Illustration */}
+                          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shadow-md border border-white/20 bg-gradient-to-tr from-white/10 to-purple-100/30 shrink-0 group/img">
+                            <img 
+                              src="/src/assets/images/companion_3d_illustration_1782481469292.jpg" 
+                              alt="Rent a Friend Companion" 
+                              className="w-full h-full object-cover select-none transition-transform duration-500 ease-out group-hover/img:scale-105"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+                            
+                            {/* Floating micro-badge inside image */}
+                            <div className="absolute top-1.5 right-1.5 p-1 bg-white/20 backdrop-blur-md border border-white/30 rounded-lg shadow">
+                              <Heart size={10} className="text-pink-400 fill-pink-400" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Footer with aligned CTA */}
+                        <div className="flex justify-between items-center pt-3 border-t border-white/10 relative z-10">
+                          <div className="text-[10px] text-purple-200/95 font-semibold font-sans">
+                            <span>Queue: {isNotifiedEliteBuddy ? "Priority Secured" : "Applications Open"}</span>
+                          </div>
+
+                          {isNotifiedEliteBuddy ? (
+                            <motion.button
+                              type="button"
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.97 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEliteWaitlist();
+                              }}
+                              className="relative h-9 px-4 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-300 text-[10px] font-black flex items-center gap-1.5 select-none cursor-pointer"
+                            >
+                              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                              <span>On Waitlist (#247)</span>
+                            </motion.button>
+                          ) : (
+                            <motion.button
+                              type="button"
+                              whileHover={{ 
+                                scale: 1.04,
+                                boxShadow: "0 6px 16px rgba(244,184,255,0.35), inset 0 1px 1px rgba(255,255,255,0.4)"
+                              }}
+                              whileTap={{ scale: 0.96 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEliteWaitlist();
+                              }}
+                              className="relative overflow-hidden bg-gradient-to-r from-[#F4B8FF] via-[#7E5CFF] to-[#4F2DAF] text-white text-[10px] font-black h-9 px-4 rounded-full shadow-[0_4px_12px_rgba(139,92,246,0.2)] transition-all flex items-center gap-1 select-none group cursor-pointer border-none"
+                            >
+                              <Sparkles size={10} className="text-white shrink-0 animate-pulse" />
+                              <span>Request Invite</span>
+                              <ArrowRight size={10} className="stroke-[3] text-white shrink-0 transition-transform duration-300 group-hover:translate-x-0.5" />
+                            </motion.button>
+                          )}
+                        </div>
+                      </motion.div>
+
+                      {/* Card 3: 24x7 Scooty Ride Service (Redesigned to be highly compact, sleek) */}
+                      <motion.div 
+                        onClick={() => {
+                          setIsEliteRide(true);
+                          setIsRiding(true);
+                        }}
+                        whileHover={{ scale: 1.01 }}
+                        className="relative rounded-[28px] overflow-hidden p-5 flex flex-col gap-4 text-left cursor-pointer transition-all duration-500 border border-emerald-500/10 group shadow-[0_20px_48px_rgba(0,0,0,0.25),_inset_0_1px_0_rgba(255,255,255,0.05)]"
+                        style={{
+                          background: 'radial-gradient(circle at 80% 20%, #10B981 0%, transparent 60%), radial-gradient(circle at 10% 90%, #020617 0%, transparent 70%), linear-gradient(135deg, #0B1329 0%, #1E293B 100%)',
+                        }}
+                      >
+                        {/* Light shine element */}
+                        <div className="absolute inset-0 bg-white/[0.01] pointer-events-none" />
+
+                        <div className="grid grid-cols-[1fr_auto] gap-4 items-center relative z-10">
+                          <div className="space-y-1.5">
+                            <div className="flex">
+                              <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-400/20 text-[#34D399] px-2.5 py-1 rounded-full text-[8.5px] font-extrabold uppercase tracking-widest leading-none">
+                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                                24×7 Available
+                              </span>
+                            </div>
+
+                            <h4 className="text-[16px] font-black tracking-tight text-white font-sans leading-tight">
+                              24×7 Scooty Ride Service
+                            </h4>
+                            <p className="text-[11px] text-slate-300 leading-relaxed font-semibold font-sans max-w-[210px]">
+                              Fast, safe, and hassle-free rides anytime, anywhere across Chamba.
+                            </p>
+
+                            {/* Feature Blocks Compact inline/row list */}
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              <span className="inline-flex items-center gap-1 bg-white/5 text-slate-300 text-[9.5px] font-semibold px-2 py-1 rounded-xl border border-white/[0.05]">
+                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-1"></span> 24h Availability
+                              </span>
+                              <span className="inline-flex items-center gap-1 bg-white/5 text-slate-300 text-[9.5px] font-semibold px-2 py-1 rounded-xl border border-white/[0.05]">
+                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-1"></span> Chamba Limits
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Right Column: Beautiful compact 3D Scooty Illustration */}
+                          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shadow-md border border-white/10 bg-gradient-to-tr from-white/5 to-emerald-500/10 shrink-0 group/img">
+                            <img 
+                              src="/src/assets/images/scooty_3d_1782482311038.jpg" 
+                              alt="24x7 Scooty Ride" 
+                              className="w-full h-full object-cover select-none transition-transform duration-500 ease-out group-hover/img:scale-105"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+                          </div>
+                        </div>
+
+                        {/* Footer with aligned CTA */}
+                        <div className="flex justify-between items-center pt-3 border-t border-white/[0.06] relative z-10">
+                          <div className="text-[10px] text-emerald-300 font-semibold font-sans">
+                            <span>Price: <strong className="text-white">₹40 / KM</strong></span>
+                          </div>
+
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.03, boxShadow: "0 4px 16px rgba(16,185,129,0.3)" }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsEliteRide(true);
+                              setIsRiding(true);
+                            }}
+                            className="bg-[#10B981] hover:bg-[#34D399] text-neutral-950 text-[10px] font-black h-9 px-4 rounded-full shadow-[0_4px_12px_rgba(16,185,129,0.2)] transition-all flex items-center gap-1 border-none cursor-pointer select-none group"
+                          >
+                            <span>Book Scooty</span>
+                            <ArrowRight size={10} className="stroke-[3] shrink-0 transition-transform duration-300 group-hover:translate-x-0.5" />
+                          </motion.button>
+                        </div>
+                      </motion.div>
                     </div>
                   </div>
 
