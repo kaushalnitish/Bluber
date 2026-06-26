@@ -521,7 +521,7 @@ export const CartTab: React.FC<CartTabProps> = ({
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-xs font-extrabold text-text-secondary uppercase tracking-widest">
-                  Bluber Guest Wallet
+                  {user ? "Bluber Wallet" : "Bluber Guest Wallet"}
                 </h3>
                 <p className="text-xl font-black text-text-primary flex items-center gap-1.5 mt-1">
                   <Coins size={20} className="text-amber-500" />
@@ -568,7 +568,7 @@ export const CartTab: React.FC<CartTabProps> = ({
                 </div>
 
                 {topUpSuccess && (
-                  <p className="text-[10px] text-emerald-600 font-black">✓ Guest Wallet charged up successfully!</p>
+                  <p className="text-[10px] text-emerald-600 font-black">✓ {user ? "Wallet" : "Guest Wallet"} charged up successfully!</p>
                 )}
 
                 <button
@@ -632,7 +632,7 @@ export const CartTab: React.FC<CartTabProps> = ({
           <div className="flex flex-col items-center justify-center">
             <Loader2 size={44} className="text-primary animate-spin shrink-0" />
             <h3 className="text-base font-black text-text-primary mt-4">Transmitting Order to Hub...</h3>
-            <p className="text-[11px] text-text-secondary uppercase font-bold tracking-widest text-primary mt-1">Prepaid Guest Node Passthrough</p>
+            <p className="text-[11px] text-text-secondary uppercase font-bold tracking-widest text-primary mt-1">{user ? "Secure User Node Passthrough" : "Prepaid Guest Node Passthrough"}</p>
           </div>
 
           <div className="bg-canvas border border-border-custom p-4 rounded-2xl max-w-xs mx-auto text-left space-y-2 text-[11px] font-mono text-text-secondary">
@@ -650,12 +650,12 @@ export const CartTab: React.FC<CartTabProps> = ({
             </div>
             <div className="flex justify-between">
               <span>Gateway Node:</span>
-              <span className="font-bold text-[#1E6B3D]">GUEST_WALLET_PASSTHRU</span>
+              <span className="font-bold text-[#1E6B3D]">{user ? "SECURE_USER_WALLET_PASSTHRU" : "GUEST_WALLET_PASSTHRU"}</span>
             </div>
           </div>
           
           <p className="text-[11px] text-text-secondary leading-normal max-w-[240px] mx-auto">
-            Securing guest checkout receipt and planning optimal driver matching...
+            {user ? "Securing transaction receipt and planning optimal driver matching..." : "Securing guest checkout receipt and planning optimal driver matching..."}
           </p>
         </div>
       )}
@@ -671,7 +671,7 @@ export const CartTab: React.FC<CartTabProps> = ({
             <p className="text-xs text-text-primary font-bold">Driver Sourcing Triggered</p>
           </div>
           <p className="text-xs text-text-secondary leading-relaxed">
-            Guest wallet payment captured. Receipt ID: <span className="font-mono font-bold text-text-primary">{txnDetails.txnId}</span>.<br />
+            {user ? "Secure wallet" : "Guest wallet"} payment captured. Receipt ID: <span className="font-mono font-bold text-text-primary">{txnDetails.txnId}</span>.<br />
             Our owner logistics captains have received your order <strong>{lastOrderId}</strong>! A rider is being assigned.
           </p>
 

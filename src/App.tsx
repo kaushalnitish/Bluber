@@ -115,17 +115,28 @@ export default function App() {
     const saved = safeStorage.getItem("bluber_auth_user");
     return saved ? JSON.parse(saved) : null;
   });
+  const [isAuthInitializing, setIsAuthInitializing] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authError, setAuthError] = useState("");
   const [pendingAction, setPendingAction] = useState<{ type: string; data?: any } | null>(null);
 
   useEffect(() => {
+    let redirectResolved = false;
+    let authStateResolved = false;
+
+    const checkFinished = () => {
+      if (redirectResolved && authStateResolved) {
+        setIsAuthInitializing(false);
+      }
+    };
+
     // Check for redirect result upon mount (handles redirects back from mobile Google Sign-In)
+    console.log("[DEBUG] Checking redirect result with getRedirectResult()...");
     getRedirectResult(auth)
       .then((result) => {
+        console.log("[DEBUG] getRedirectResult complete. Result exists:", !!result, "User email:", result?.user?.email);
         if (result && result.user) {
           const firebaseUser = result.user;
-          console.log("Successfully retrieved user session after redirect:", firebaseUser.email);
           const u = {
             uid: firebaseUser.uid,
             name: firebaseUser.displayName || firebaseUser.phoneNumber || "Verified User",
@@ -133,6 +144,7 @@ export default function App() {
             phone: firebaseUser.phoneNumber || "",
             photoURL: firebaseUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${firebaseUser.uid}`
           };
+          console.log("[DEBUG] Resolved user after redirect:", u);
           setUser(u);
           safeStorage.setItem("bluber_auth_user", JSON.stringify(u));
           setUserProfile({
@@ -145,13 +157,19 @@ export default function App() {
         }
       })
       .catch((err) => {
-        console.error("Redirect Sign-in error caught on app load:", err);
+        console.error("[DEBUG] Redirect Sign-in error caught on app load:", err);
         const friendlyMessage = translateFirebaseAuthError(err);
         setAuthError(friendlyMessage);
         setIsAuthModalOpen(true); // Automatically open the modal to display the descriptive error
+      })
+      .finally(() => {
+        redirectResolved = true;
+        checkFinished();
       });
 
+    console.log("[DEBUG] Setting up onAuthStateChanged listener...");
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log("[DEBUG] onAuthStateChanged fired. User object:", firebaseUser ? { uid: firebaseUser.uid, email: firebaseUser.email, name: firebaseUser.displayName } : "null");
       if (firebaseUser) {
         const u = {
           uid: firebaseUser.uid,
@@ -171,18 +189,36 @@ export default function App() {
         setUser(null);
         safeStorage.removeItem("bluber_auth_user");
       }
+      authStateResolved = true;
+      checkFinished();
     });
     return () => unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     try {
+      console.log("[DEBUG] Executing handleLogout(). Current Firebase user:", auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : "null");
       await signOut(auth);
       setUser(null);
       safeStorage.removeItem("bluber_auth_user");
       setUserProfile({ name: "", phone: "", email: "" });
+      console.log("[DEBUG] Logout successful. Local state wiped.");
     } catch (err) {
-      console.error("Logout error", err);
+      console.error("[DEBUG] Logout error:", err);
+    }
+  };
+
+  const handleUpdateProfile = (profile: { name: string; phone: string; email: string }) => {
+    setUserProfile(profile);
+    if (user) {
+      const updatedUser = {
+        ...user,
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone
+      };
+      setUser(updatedUser);
+      safeStorage.setItem("bluber_auth_user", JSON.stringify(updatedUser));
     }
   };
 
@@ -738,6 +774,17 @@ export default function App() {
         id="phone-wrapper" 
         className="w-full max-w-md bg-[#F7F8F5] h-dvh md:h-[844px] shadow-custom relative flex flex-col overflow-hidden md:rounded-[40px] md:border-8 md:border-[#111827] pointer-events-auto"
       >
+        {/* Auth Initialization Loader */}
+        {isAuthInitializing ? (
+          <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-[10000] p-6 space-y-4">
+            <div className="w-16 h-16 bg-[#EDF7EF] rounded-full flex items-center justify-center animate-pulse">
+              <MapPin size={32} className="text-[#1E6B3D] animate-bounce" />
+            </div>
+            <h2 className="text-lg font-black text-text-primary tracking-tight">BLUBER CONNECT</h2>
+            <p className="text-xs text-text-secondary font-medium animate-pulse">Synchronizing secure residency credentials...</p>
+          </div>
+        ) : null}
+
         {/* Global Success Toast */}
         {successToast.show && (
           <div className="absolute top-4 inset-x-4 bg-white/95 backdrop-blur-md border border-emerald-500/20 shadow-xl rounded-2xl p-3 flex items-center justify-between z-[9999] animate-slide-down pointer-events-auto">
@@ -946,7 +993,7 @@ export default function App() {
                   orders={orders}
                   onViewAllOrders={() => setActiveTab("orders")}
                   userProfile={userProfile}
-                  onUpdateProfile={(profile) => setUserProfile(profile)}
+                  onUpdateProfile={handleUpdateProfile}
                   savedAddresses={savedAddresses}
                   onUpdateAddresses={(addresses) => setSavedAddresses(addresses)}
                   user={user}
@@ -994,9 +1041,9 @@ export default function App() {
                         className="w-10 h-10 bg-[#EDF7EF] rounded-full text-white flex items-center justify-center font-bold text-xs shadow-md border-2 border-white cursor-pointer overflow-hidden shrink-0"
                       >
                         <ImageComponent 
-                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop" 
-                          alt="Profile Avatar"
-                          fallbackName="Chamba User"
+                          src={user?.photoURL || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop"} 
+                          alt={user?.name || "Profile Avatar"}
+                          fallbackName={user?.name || "Guest Resident"}
                           fallbackType="avatar"
                           className="w-full h-full object-cover"
                         />

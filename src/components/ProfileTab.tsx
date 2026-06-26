@@ -74,10 +74,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
 
   useEffect(() => {
-    setProfileName(userProfile.name);
-    setProfileEmail(userProfile.email);
-    setProfilePhone(userProfile.phone);
-  }, [userProfile]);
+    setProfileName(userProfile.name || user?.name || "");
+    setProfileEmail(userProfile.email || user?.email || "");
+    setProfilePhone(userProfile.phone || user?.phone || "");
+  }, [userProfile, user]);
 
 
   // 3. Wallet State
@@ -254,6 +254,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     return false;
   });
 
+  const displayNameToUse = user ? (profileName || user.name || "Verified User") : "Guest Resident";
+  const displayEmailToUse = profileEmail || user?.email || "";
+  const displayPhoneToUse = profilePhone || user?.phone || "";
+
+  console.log("[DEBUG] Rendering ProfileTab. User authenticated:", !!user, "UID:", user?.uid, "DisplayName:", displayNameToUse);
+
   return (
     <div id="profile-tab-root" className="px-5 py-5 animate-fade-in pb-28 text-left space-y-6 max-w-2xl mx-auto">
       
@@ -265,26 +271,26 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               {user?.photoURL ? (
                 <img 
                   src={user.photoURL} 
-                  alt={profileName} 
+                  alt={displayNameToUse} 
                   referrerPolicy="no-referrer"
                   className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white"
                 />
               ) : (
                 <div className="w-16 h-16 bg-[#1E6B3D] rounded-full text-white flex items-center justify-center font-bold text-xl uppercase shadow-md border-2 border-white">
-                  {profileName ? profileName.split(" ").map(n => n[0]).join("") : "G"}
+                  {displayNameToUse.split(" ").map((n: string) => n[0]).join("").substring(0, 2)}
                 </div>
               )}
               <span className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${user ? "bg-emerald-500" : "bg-gray-300"}`}></span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-extrabold text-text-primary">{user ? profileName : "Guest Resident"}</h2>
+                <h2 className="text-base font-extrabold text-text-primary">{displayNameToUse}</h2>
                 <span className={`text-[9px] font-black tracking-normal px-2.5 py-0.5 rounded-full uppercase ${user ? "bg-emerald-50 text-emerald-800" : "bg-gray-100 text-gray-500"}`}>
                   {user ? "Verified" : "Guest"}
                 </span>
               </div>
               <p className="text-xs text-text-secondary mt-0.5">
-                {user ? `${profileEmail} • ${profilePhone}` : "Sign in to unlock support & addresses"}
+                {user ? `${displayEmailToUse || "No email"} • ${displayPhoneToUse || "No phone"}` : "Sign in to unlock support & addresses"}
               </p>
               
               <div className="flex items-center gap-1.5 mt-2.5">
@@ -998,7 +1004,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
       {/* Footer Branding details */}
       <div className="text-center space-y-1.5 opacity-65 text-[11px] text-text-secondary pt-4">
-        <p className="font-bold text-text-primary">BLUBER CONNECT • GUEST ACCOUNT</p>
+        <p className="font-bold text-text-primary">BLUBER CONNECT • {user ? "CERTIFIED RESIDENT ACCOUNT" : "GUEST ACCOUNT"}</p>
         <p>Licensed for resident commerce inside Chamba municipal boundaries.</p>
         <div className="flex justify-center gap-4 pt-1 text-[10px]">
           <span className="hover:underline cursor-pointer">Terms of Service</span>
