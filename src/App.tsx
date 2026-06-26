@@ -66,7 +66,7 @@ import { ImageComponent } from "./components/ImageComponent";
 import { OrdersTab } from "./components/OrdersTab";
 import { getPricingTier, PRICING_TIERS } from "./utils/pricing";
 import { AuthModal } from "./components/AuthModal";
-import { auth, onAuthStateChanged, signOut } from "./utils/firebase";
+import { auth, onAuthStateChanged, signOut, getRedirectResult, translateFirebaseAuthError } from "./utils/firebase";
 import {
   ScooterIllustration,
   DeliveryIllustration,
@@ -116,9 +116,41 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authError, setAuthError] = useState("");
   const [pendingAction, setPendingAction] = useState<{ type: string; data?: any } | null>(null);
 
   useEffect(() => {
+    // Check for redirect result upon mount (handles redirects back from mobile Google Sign-In)
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
+          const firebaseUser = result.user;
+          console.log("Successfully retrieved user session after redirect:", firebaseUser.email);
+          const u = {
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName || firebaseUser.phoneNumber || "Verified User",
+            email: firebaseUser.email || "",
+            phone: firebaseUser.phoneNumber || "",
+            photoURL: firebaseUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${firebaseUser.uid}`
+          };
+          setUser(u);
+          safeStorage.setItem("bluber_auth_user", JSON.stringify(u));
+          setUserProfile({
+            name: u.name,
+            phone: u.phone,
+            email: u.email
+          });
+          setAuthError("");
+          setIsAuthModalOpen(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Redirect Sign-in error caught on app load:", err);
+        const friendlyMessage = translateFirebaseAuthError(err);
+        setAuthError(friendlyMessage);
+        setIsAuthModalOpen(true); // Automatically open the modal to display the descriptive error
+      });
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         const u = {
@@ -913,8 +945,6 @@ export default function App() {
                   onEnterAdmin={() => setIsAdminOpen(true)}
                   orders={orders}
                   onViewAllOrders={() => setActiveTab("orders")}
-                  isNotifiedVMart={isNotifiedVMart}
-                  onToggleVMartNotification={handleToggleVMartNotification}
                   userProfile={userProfile}
                   onUpdateProfile={(profile) => setUserProfile(profile)}
                   savedAddresses={savedAddresses}
@@ -1982,9 +2012,11 @@ export default function App() {
           isOpen={isAuthModalOpen} 
           onClose={() => {
             setIsAuthModalOpen(false);
+            setAuthError("");
             setPendingAction(null);
           }} 
           onSuccess={handleAuthSuccess} 
+          initialError={authError}
         />
 
       </div>

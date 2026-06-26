@@ -14,17 +14,22 @@ import {
   auth, 
   googleProvider, 
   RecaptchaVerifier, 
-  signInWithPhoneNumber
+  signInWithPhoneNumber,
+  signInWithPopup,
+  signInWithRedirect,
+  isMobileDevice,
+  translateFirebaseAuthError
 } from "../utils/firebase";
-import { signInWithPopup, ConfirmationResult } from "firebase/auth";
+import { ConfirmationResult } from "firebase/auth";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (user: { uid: string; name: string; email: string; phone: string; photoURL: string }) => void;
+  initialError?: string;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initialError = "" }) => {
   const [authMethod, setAuthMethod] = useState<"choose" | "phone">("choose");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [countryCode, setCountryCode] = useState("+91");
@@ -32,8 +37,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (initialError) {
+      setError(initialError);
+    }
+  }, [initialError]);
   
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
@@ -92,6 +103,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     setLoading(true);
     setError("");
     try {
+      const isMobile = isMobileDevice();
+      console.log(`Initiating Google Sign-In. Device classification: ${isMobile ? "MOBILE (Redirect)" : "DESKTOP (Popup)"}`);
+
+      if (isMobile) {
+        // Automatically use signInWithRedirect() on mobile devices
+        await signInWithRedirect(auth, googleProvider);
+        // Page will redirect, so keep loading active
+        return;
+      }
+
+      // Keep signInWithPopup() for desktop only
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
@@ -113,15 +135,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       }, 1500);
     } catch (err: any) {
       console.error("Google Sign-in error:", err);
-      if (err.code === "auth/popup-blocked") {
-        setError("Sign-in popup was blocked by your browser. Please enable popups or try again.");
-      } else if (err.code === "auth/cancelled-popup-request") {
-        setError("Sign-in was cancelled. Please try again.");
-      } else {
-        setError("Failed to sign in with Google. Please try again.");
-      }
+      const userMessage = translateFirebaseAuthError(err);
+      setError(userMessage);
     } finally {
-      setLoading(false);
+      // Don't disable loading if we're redirecting on mobile to avoid UI flashing
+      if (!isMobileDevice()) {
+        setLoading(false);
+      }
     }
   };
 

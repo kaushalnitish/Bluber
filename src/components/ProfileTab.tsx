@@ -29,11 +29,9 @@ import {
   Phone,
   AlertTriangle,
   FileQuestion,
-  Bell,
   Lock,
   Languages,
   LogOut,
-  Sparkles,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -46,8 +44,6 @@ interface ProfileTabProps {
   onEnterAdmin?: () => void; // Made optional to clean operations/analytics from client
   orders: any[];
   onViewAllOrders: () => void;
-  isNotifiedVMart?: boolean;
-  onToggleVMartNotification?: () => void;
   userProfile: { name: string; phone: string; email: string };
   onUpdateProfile: (profile: { name: string; phone: string; email: string }) => void;
   savedAddresses: Array<{ id: string; type: string; label: string; detail: string }>;
@@ -62,8 +58,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   onTopUpWallet,
   orders,
   onViewAllOrders,
-  isNotifiedVMart,
-  onToggleVMartNotification,
   userProfile,
   onUpdateProfile,
   savedAddresses,
@@ -85,10 +79,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     setProfilePhone(userProfile.phone);
   }, [userProfile]);
 
-  // 2. V-Mart Announcement State
-  const [isNotifiedVMartInternal, setIsNotifiedVMartInternal] = useState(false);
-  const isNotified = isNotifiedVMart !== undefined ? isNotifiedVMart : isNotifiedVMartInternal;
-  const handleToggleVMart = onToggleVMartNotification || (() => setIsNotifiedVMartInternal(!isNotifiedVMartInternal));
 
   // 3. Wallet State
   const [customRechargeAmount, setCustomRechargeAmount] = useState("");
@@ -374,64 +364,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             </button>
           </form>
         )}
-      </div>
-
-      {/* 8. NEW FEATURE: UPCOMING STORE ANNOUNCEMENT (V-MART) */}
-      <div className="bg-gradient-to-br from-indigo-900 via-[#1E1B4B] to-slate-950 text-white rounded-[28px] p-6 border border-indigo-500/20 shadow-lg relative overflow-hidden text-left">
-        {/* Glowing visual effect background */}
-        <div className="absolute -top-12 -right-12 w-44 h-44 bg-indigo-500/10 rounded-full blur-2xl"></div>
-        <div className="absolute inset-0 bg-white/[0.01] pointer-events-none"></div>
-
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
-          <div className="space-y-1.5 max-w-md">
-            <span className="inline-flex items-center gap-1 bg-indigo-500/15 border border-indigo-400/30 text-[#818CF8] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider">
-              <Sparkles size={10} className="text-indigo-400 animate-spin" />
-              Opening Shortly
-            </span>
-            <h3 className="text-lg font-black tracking-tight leading-tight font-sans">
-              V-Mart Coming Soon
-            </h3>
-            <p className="text-xs text-indigo-200 leading-relaxed font-sans font-bold">
-              Shop thousands of fashion, household and daily essentials directly through BLUBER.
-            </p>
-          </div>
-          <div className="bg-indigo-950/80 p-3.5 rounded-2xl border border-indigo-700/30 flex items-center justify-center shadow-inner self-start">
-            <ShoppingBag size={28} className="text-indigo-400" />
-          </div>
-        </div>
-
-        <p className="text-[11px] text-slate-300 leading-relaxed bg-slate-950/40 p-4 rounded-2xl border border-white/[0.03] mb-4">
-          V-Mart is arriving soon in Chamba. Get ready to order fashion, home essentials, kitchen products, toys, accessories and more directly from the app.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/[0.06]">
-          <div className="text-left w-full sm:w-auto">
-            <p className="text-[8px] text-indigo-400 font-black uppercase tracking-widest leading-none">Interest Pool</p>
-            <p className="text-xs text-slate-200 font-bold mt-1">Exclusive first access launch alerts</p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleToggleVMart}
-            className={`w-full sm:w-auto text-xs font-black py-3 px-6 rounded-2xl transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${
-              isNotified 
-                ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-md" 
-                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_4px_15px_rgba(79,70,229,0.3)]"
-            }`}
-          >
-            {isNotified ? (
-              <>
-                <CheckCircle size={14} className="stroke-[3]" />
-                <span>Notified! We will alert you</span>
-              </>
-            ) : (
-              <>
-                <Bell size={14} />
-                <span>Notify Me</span>
-              </>
-            )}
-          </button>
-        </div>
       </div>
 
       {/* 2. BLUBER WALLET */}
